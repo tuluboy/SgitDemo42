@@ -1,0 +1,38 @@
+ncc=g++
+exe=sgitDemo
+
+SHARELIBDIR=-L./
+SHARELIBFILE=\
+	-lsgittradeapi \
+	-lsgitquotapi 
+
+
+s_main=\
+	main.cpp \
+	GetParam.cpp \
+	GetParam.h \
+	TradeSpi.cpp \
+	TradeSpi.h \
+	Mdspi.cpp \
+	MdSpi.h 
+
+s_xml=\
+	../s_xml/tinyxml2.cpp \
+	../s_xml/tinyxml2.h
+
+s_log =\
+	../s_log/log.cpp \
+	../s_log/log.h \
+				
+s_include=\
+	../s_include/SgitFtdcMdApi.h \
+	../s_include/SgitFtdcTraderApi.h \
+	../s_include/SgitFtdcUserApiDataType.h \
+	../s_include/SgitFtdcUserApiStruct.h
+			
+$(exe):
+	$(cc) $(s_xml) $(s_log) $(s_include) $(s_main) $(SHARELIBDIR) $(SHARELIBFILE)
+
+
+clean:
+	rm -fr *.o

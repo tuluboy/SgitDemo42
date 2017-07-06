@@ -1,0 +1,45 @@
+﻿生成启动时间为 2017/7/6 16:57:06。
+     1>项目“D:\work\prj\SgitDemo42\SgitDemo42\SgitDemo42.vcxproj”在节点 2 上(Build 个目标)。
+     1>ClCompile:
+         D:\prog\VS2013\VC\bin\CL.exe /c /I"D:\work\prj\mysql-5.7\include" /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _CRT_SECURE_NO_WARNINGS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Arbitrage.cpp
+         Arbitrage.cpp
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(131): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(132): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(134): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(135): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(137): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(138): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(140): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(141): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arborditem.h(8): warning C4099: “zc::ArbOrdItem”: 类型名称以前使用“struct”现在使用的是“class”
+                 d:\work\prj\sgitdemo42\sgitdemo42\common.h(27) : 参见“zc::ArbOrdItem”的声明
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(456): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(460): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(471): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(475): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1130): warning C4244: “return”: 从“double”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1183): warning C4244: “return”: 从“double”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1200): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1203): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\dbman.h(27): warning C4244: “=”: 从“my_ulonglong”转换到“int”，可能丢失数据
+                 d:\work\prj\sgitdemo42\sgitdemo42\dbman.h(21): 编译类 模板 成员函数“void dbQuery<zc::ParamRowItem4DbQry>::doParse(void)”时
+                 d:\work\prj\sgitdemo42\sgitdemo42\dbman.h(47): 参见对正在编译的函数 模板 实例化“void dbQuery<zc::ParamRowItem4DbQry>::doParse(void)”的引用
+                 d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1194): 参见对正在编译的类 模板 实例化“dbQuery<zc::ParamRowItem4DbQry>”的引用
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(463): warning C4715: “zc::Arbitrage::getLeftPrice”: 不是所有的控件路径都返回值
+       Link:
+         D:\prog\VS2013\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\work\prj\SgitDemo42\bin\TaoTaoXia.exe" /INCREMENTAL /NOLOGO libmysql32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\work\prj\SgitDemo42\bin\TaoTaoXia.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\work\prj\SgitDemo42\bin\TaoTaoXia.lib" /MACHINE:X86 Debug\log.obj
+         Debug\tinyxml2.obj
+         Debug\Arbitrage.obj
+         Debug\ArbOrdItem.obj
+         Debug\dbman.obj
+         Debug\GetParam.obj
+         Debug\main.obj
+         Debug\Mdspi.obj
+         Debug\TradeSpi.obj
+         Debug\zc_util.obj
+         SgitDemo42.vcxproj -> D:\work\prj\SgitDemo42\bin\TaoTaoXia.exe
+     1>已完成生成项目“D:\work\prj\SgitDemo42\SgitDemo42\SgitDemo42.vcxproj”(Build 个目标)的操作。
+
+生成成功。
+
+已用时间 00:00:00.91

@@ -1,0 +1,80 @@
+// cirque.h
+// 双端队列
+template <typename T>
+class cirque<T>
+{
+public:
+	cirque<T>(int nInitSize) : m_InitSize(nInitSize)
+	{
+		m_pData = new T[m_InitSize];
+		m_pDataEnd = p_pData + m_InitSize;
+
+		m_pRead = nullptr; // 队列空
+		m_pWrite = m_pRead;
+	}
+
+	~cirque()
+	{
+		delete[] m_pData;
+	}
+
+	void init()
+	{
+		while (m_pRead != m_pWrite)
+		{
+			pop();
+		}
+	}
+
+	T* pop()
+	{
+		delete m_pRead++;
+	}
+
+	T* read()
+	{
+		// 当队列为空时，返回的是空指针，用户自己要检查
+		return m_pRead;
+	}
+
+	// 返回nullptr表示写入失败
+	T* write(T& t)
+	{
+		// 写入前必须有空位
+		if (m_pWrite == m_pRead)
+		{
+			return nullptr; // 写入失败
+		}
+
+		*m_pWrite = t;
+		T* lastWrite = m_pWrite;
+		// 写入后移动m_pWrite 到新的空位
+		if (m_pWrite + 1 == m_pDataEnd)
+		{
+			delete m_pData;
+			m_pWrite = m_pData;
+		}
+		else
+		{
+			m_pWrite++;
+		}
+		return lastWrite;
+	}
+
+	int GetSize() // 获取当前数据个数
+	{
+		if (m_pWrite > m_pRead) return m_pWrite - m_pRead;
+		else if (m_pWrite < m_pRead) return m_pWrite + m_InitSize - m_pRead;
+		else return 0;
+		
+
+		return 0;
+	}
+
+private:
+	int m_InitSize;
+	T* m_pData;
+	T* m_pDataEnd;
+	T* m_pWrite;
+	T* m_pRead;
+};
