@@ -26,7 +26,7 @@ namespace zc
 	QryPositionFB Arbitrage::qrPosFB;
 	Arbitrage::Arbitrage(CMdSpi* pMd, CTradeSpi* pTrd) :pMdSpi(pMd), pTrdSpi(pTrd)
 	{
-		ArbiPos = 0;
+		ArbiPosLong = 0; ArbiPosShort = 0;
 		SendFlag = 0;
 	}
 
@@ -57,13 +57,75 @@ namespace zc
 			std::cout << "qry pos empty!\n";
 			return -1;
 		}
-		
 		for (auto it = qrPosFB.posList.begin(); it != qrPosFB.posList.end(); ++it)
 		{
-			std::cout << "InstrumentID：" << it->InstrumentID << std::endl;
-			std::cout << "direction: " << it->PosiDirection << std::endl;
-			std::cout << "pos: " << it->Position << std::endl;
-			std::cout << "open cost: " << it->OpenCost << std::endl;
+			std::cout << "InstrumentID：" << it->InstrumentID << "  direction: " << (it->PosiDirection == '1' ? "空" : "多") << "  pos: " << it->Position << "  open cost: " << it->OpenCost << std::endl;
+		}
+
+		bool run = true;
+		int lastsum = 999999;
+		int cursum = 0;
+		while (run)
+		{
+			for (auto jt = ArbiTrades.begin(); jt != ArbiTrades.end(); ++jt)
+			{
+				fstech::CThostFtdcInvestorPositionField *left(nullptr), *right(nullptr);
+				for (auto it = qrPosFB.posList.begin(); it != qrPosFB.posList.end(); ++it)
+				{
+					if (jt->ArbiInst.leftleg == it->InstrumentID)
+					{
+						left = &(*it);
+					}
+					if (jt->ArbiInst.rightleg == it->InstrumentID)
+					{
+						right = &(*it);
+					}
+				}
+				if (!left || !right)continue;
+				if (left->Position / jt->ArbiInst.getLeftTradeUnit() <= right->Position / jt->ArbiInst.getRightTradeUnit())
+				{
+					if (left->Position / jt->ArbiInst.getLeftTradeUnit() >= 1)
+					{
+						jt->leftPos = jt->ArbiInst.getLeftTradeUnit();
+						jt->rightPos = jt->ArbiInst.getRightTradeUnit();
+						left->Position -= jt->ArbiInst.getLeftTradeUnit();
+						right->Position -= jt->ArbiInst.getRightTradeUnit();
+						if (left->PosiDirection == '1')jt->leftPos = -jt->leftPos;
+					}
+					else continue;
+				}
+				else
+				{
+					if (right->Position / jt->ArbiInst.getRightTradeUnit() >= 1)
+					{
+						jt->rightPos = jt->ArbiInst.getRightTradeUnit();
+						jt->leftPos = jt->ArbiInst.getLeftTradeUnit();
+						right->Position -= jt->ArbiInst.getRightTradeUnit();
+						left->Position -= jt->ArbiInst.getLeftTradeUnit();
+						if (right->PosiDirection == '1')jt->rightPos = -jt->rightPos;
+					}
+					else continue;
+				}
+				assert(jt->leftPos*jt->rightPos < 0);
+				if (jt->leftPos < 0)jt->ArbiPosLong += jt->rightPos / jt->ArbiInst.getRightTradeUnit();
+				else jt->ArbiPosShort += jt->rightPos / jt->ArbiInst.getRightTradeUnit();
+				std::cout << jt->ArbiInst.ArbiInstID << " ArbiPosLong: " << jt->ArbiPosLong << "  ArbiPosShort: " << jt->ArbiPosShort << std::endl;
+			}
+
+			for (auto kt = qrPosFB.posList.begin(); kt != qrPosFB.posList.end(); ++kt)
+			{
+				cursum += kt->Position;
+			}
+
+			if (lastsum > cursum)
+			{
+				lastsum = cursum;
+				cursum = 0;
+			}
+			if (lastsum == cursum)
+			{
+				run = false;
+			}
 		}
 		// 怎样将各腿的持仓凑成套利对？
 		return 0;
@@ -114,7 +176,7 @@ namespace zc
 		ArbiTrades[0].ArbiInst.setSpreadLower2(-9998);
 		ArbiTrades[0].ArbiInst.setSpreadUpper2(9999);
 
-		ArbiTrades[0].sendFirst = LEG_TYPE::EM_RightLeg;
+		ArbiTrades[0].sendFirst = LEG_TYPE::EM_LeftLeg;
 		ArbiTrades[0].setSpot(LEG_TYPE::EM_LeftLeg);
 		ArbiTrades[0].setOpenBalance(ARBI_BALANCE::EM_BL_FILL); // 开仓采用增仓调平
 		ArbiTrades[0].setCloseBalance(ARBI_BALANCE::EM_BL_CUT); // 开仓采用减仓调平
@@ -125,7 +187,7 @@ namespace zc
 		ArbiTrades[1].ArbiInst.setSpreadUpper1(9998);
 		ArbiTrades[1].ArbiInst.setSpreadLower1(-9998);
 		ArbiTrades[1].ArbiInst.setSpreadUpper1(9999);
-		ArbiTrades[1].sendFirst = LEG_TYPE::EM_RightLeg;
+		ArbiTrades[1].sendFirst = LEG_TYPE::EM_LeftLeg;
 		ArbiTrades[1].setSpot(LEG_TYPE::EM_LeftLeg);
 		ArbiTrades[1].setOpenBalance(ARBI_BALANCE::EM_BL_FILL); // 开仓采用增仓调平
 		ArbiTrades[1].setCloseBalance(ARBI_BALANCE::EM_BL_CUT); // 开仓采用减仓调平
@@ -136,7 +198,7 @@ namespace zc
 		ArbiTrades[2].ArbiInst.setSpreadUpper1(9998);
 		ArbiTrades[2].ArbiInst.setSpreadLower1(-9998);
 		ArbiTrades[2].ArbiInst.setSpreadUpper1(9999);
-		ArbiTrades[2].sendFirst = LEG_TYPE::EM_RightLeg;
+		ArbiTrades[2].sendFirst = LEG_TYPE::EM_LeftLeg;
 		ArbiTrades[2].setSpot(LEG_TYPE::EM_LeftLeg);
 		ArbiTrades[2].setOpenBalance(ARBI_BALANCE::EM_BL_FILL); // 开仓采用增仓调平
 		ArbiTrades[2].setCloseBalance(ARBI_BALANCE::EM_BL_CUT); // 开仓采用减仓调平
@@ -156,7 +218,7 @@ namespace zc
 			}
 		}
 		// 查询持仓，组成套利对
-		getArbiPos(pTrd);
+		//getArbiPos(pTrd);
 	}
 
 	// 静态函数，被orderFunc调用轮询订单状态，更新订单状态
@@ -238,12 +300,12 @@ namespace zc
 		{
 			if (0 == SendFlag)
 			{
-				sellshort(2); // 直接送2手
+				sellshort(2,60); // 直接送2手
 				SendFlag = 2;
 			}
 			else if (1 == SendFlag)
 			{
-				sellshort(1);
+				sellshort(1, 60);
 				SendFlag = 1;
 			}
 
@@ -253,40 +315,40 @@ namespace zc
 			// 目前只有正套 if (ArbiPos > 0) sell(ArbiPos);
 			if (0 == SendFlag)
 			{
-				sellshort(1);
+				sellshort(1, 60);
 				SendFlag = 1;
 				CloseFlag = 0;
 			}
 		}
-		else if (ArbiPos > 0 && ArbiInst.longBasisSpread1 < ArbiInst.getSpreadLower2())
+		else if (ArbiPosShort > 0 && ArbiInst.longBasisSpread1 < ArbiInst.getSpreadLower2())
 		{
 			if (0 == CloseFlag)
 			{
-				buy2cover(1);
+				buy2cover(1, 60);
 				CloseFlag = 1;
 			}
 		}
-		else if (ArbiPos > 0 && ArbiInst.longBasisSpread1 < ArbiInst.getSpreadLower1())
+		else if (ArbiPosShort > 0 && ArbiInst.longBasisSpread1 < ArbiInst.getSpreadLower1())
 		{
 			if (0 == CloseFlag)
 			{
-				buy2cover(ArbiPos); // 全平掉
+				buy2cover(ArbiPosShort, 60); // 全平掉
 				CloseFlag = 2;
 			}
 			else if (1 == CloseFlag)
 			{
-				buy2cover(1);
+				buy2cover(1, 60);
 				CloseFlag = 2;
 			}
 		}
 	}
 
-	void Arbitrage::Send(int unit, TRADE_DIR arb_dir, TRADE_OCFLAG arb_oc)
+	void Arbitrage::Send(int unit, TRADE_DIR arb_dir, TRADE_OCFLAG arb_oc, int nTimeOut)
 	{
 		while (InterlockedExchange64(&spin_Locker_arbOrders, TRUE)){ Sleep(0); }
 		arbOrders.push_back(ArbOrdItem()); // 需要加锁
 		ArbOrdItem& newOrd = arbOrders.back();
-
+		newOrd.dir = arb_dir;
 		while (InterlockedExchange64(&spin_Locker_ordbook, TRUE)){ Sleep(0); }
 		ordbook.push_back(new PlannedOrderItem);
 		newOrd.left = ordbook.back();
@@ -307,8 +369,8 @@ namespace zc
 		newOrd.left->isSpot = ArbiInst.spot == LEG_TYPE::EM_LeftLeg;
 		newOrd.right->isSpot = ArbiInst.spot == LEG_TYPE::EM_RightLeg;
 
-		newOrd.left->timeout = 5;
-		newOrd.right->timeout = 5;
+		newOrd.left->timeout = nTimeOut;
+		newOrd.right->timeout = nTimeOut;
 
 		newOrd.left->condition = LEG_CONDITION::EM_COND_NULL;
 		newOrd.right->condition = LEG_CONDITION::EM_COND_NULL;
@@ -357,14 +419,14 @@ namespace zc
 		newOrd.right->clot = 0;
 
 		newOrd.sendDelay = 0;
-		newOrd.timeout = 5; // 5秒不成就撤单
+		newOrd._timeout = 50; // 5秒不成就撤单
 
 		if (LEG_TYPE::EM_LeftLeg == sendFirst)newOrd.setLeftFirst(); // initArbi中被配置
 		else if (LEG_TYPE::EM_RightLeg == sendFirst)newOrd.setRightFirst();
 		else if (LEG_TYPE::EM_BothLegs == sendFirst)newOrd.setBothFirst();
 
 		InterlockedExchange64(&spin_Locker_ordbook, FALSE);
-		std::cout << "right ask: " << ArbiInst.rightTick.AskPrice1 << "right bid: " << ArbiInst.rightTick.BidPrice1 << std::endl;
+		std::cout << "right ask: " << ArbiInst.rightTick.AskPrice1 << " right bid: " << ArbiInst.rightTick.BidPrice1 << std::endl;
 		std::cout << "left ask: " << ArbiInst.leftTick.AskPrice1 << " left bid: " << ArbiInst.leftTick.BidPrice1 << std::endl;
 		std::cout << "buy a pair at:" << ArbiInst.longBasisSpread1 << " " << unit << std::endl;
 		std::cout << "******************************************************************************************\n";
@@ -377,7 +439,7 @@ namespace zc
 	// 事物式执行vs异步执行
 	// 事物式执行----等待两腿都执行完毕再返回，下单时给定一个等待时间
 	// 异步执行----填充下单计划表后直接返回，具体两腿是否成交完毕，交由监控线程按下单计划表处理
-	int Arbitrage::buy(int unit)
+	int Arbitrage::buy(int unit, int nTimeOut)
 	{
 		// 基差计算模式：右腿-左腿
 		// 做多基差--买入右腿，卖出左腿
@@ -386,7 +448,7 @@ namespace zc
 		{
 		Sleep(0);
 		}tickFunc线程调用，*/
-		Send(unit, zc::TRADE_DIR::EM_Long, zc::TRADE_OCFLAG::EM_Open);
+		Send(unit, zc::TRADE_DIR::EM_Long, zc::TRADE_OCFLAG::EM_Open, nTimeOut);
 		return 0;
 	}
 
@@ -398,9 +460,9 @@ namespace zc
 	}
 
 	// 即时平多
-	int Arbitrage::sell(int unit)
+	int Arbitrage::sell(int unit, int nTimeOut)
 	{
-		if(ArbiPos>0)Send(unit, zc::TRADE_DIR::EM_Short, zc::TRADE_OCFLAG::EM_Close);
+		if (ArbiPosLong>0)Send(unit, zc::TRADE_DIR::EM_Short, zc::TRADE_OCFLAG::EM_Close, nTimeOut);
 		else std::cout << "平多仓位不足\n";
 		return 0;
 	}
@@ -411,9 +473,9 @@ namespace zc
 		return 0;
 	}
 
-	int Arbitrage::sellshort(int unit) // 开空
+	int Arbitrage::sellshort(int unit, int nTimeOut) // 开空
 	{
-		Send(unit, zc::TRADE_DIR::EM_Short, zc::TRADE_OCFLAG::EM_Open);
+		Send(unit, zc::TRADE_DIR::EM_Short, zc::TRADE_OCFLAG::EM_Open, nTimeOut);
 		return 0;
 	}
 
@@ -422,9 +484,9 @@ namespace zc
 		return 0;
 	}
 
-	int Arbitrage::buy2cover(int unit) // 平空
+	int Arbitrage::buy2cover(int unit, int nTimeOut) // 平空
 	{
-		if(ArbiPos < 0)Send(unit, zc::TRADE_DIR::EM_Long, zc::TRADE_OCFLAG::EM_Close);
+		if (ArbiPosShort < 0)Send(unit, zc::TRADE_DIR::EM_Long, zc::TRADE_OCFLAG::EM_Close, nTimeOut);
 		else std::cout << "平空仓位不足！\n";
 		return 0;
 	}
@@ -545,6 +607,7 @@ namespace zc
 	// 刷新套利母单的状态
 	void Arbitrage::UpdateArbiOrd()
 	{
+		std::cout << "Into UpdateArbiOrd...\n";
 		// 套利合约状态定义：0-待送 1-已报 2-部成 3-全成 4-部撤 5-全撤 6-平仓
 		// 查询左右腿成交状态，数据从Arbitrage::ordbook中获取
 		// 母单状态：未送，已送未成，右成左瘸，左成右瘸，全成
@@ -560,6 +623,7 @@ namespace zc
 			{
 			case ARBI_STATUS::EM_0_0:
 				// 初始态，送单
+				std::cout << "status init: EM_0_0......\n"; 
 				UpdateFirst(*it);
 				// 事件处理
 				if (0 == it->sendDelay)
@@ -854,7 +918,7 @@ namespace zc
 				}
 				else if (LEG_STATUS::EM_LEG_ORDERED == it->first->status)
 				{
-					if (curtime - it->first->ordOrderedTime > it->timeout)
+					if (curtime - it->first->ordOrderedTime > it->first->timeout)
 					{
 						// 挂单超时不成交，撤单重送
 						it->first->status = LEG_STATUS::EM_LEG_CANCELREADY;
@@ -965,8 +1029,44 @@ namespace zc
 				break;
 			case ARBI_STATUS::EM_3_3:
 				// 左成右成 计入仓位
-				ArbiPos += ((it->left->lot / ArbiInst.getLeftTradeUnit()) *(TRADE_OCFLAG::EM_Open == it->right->ocFlag ? 1 : -1));
-				std::cout << "cur ArbiPos:" << ArbiPos << std::endl;
+				if (TRADE_DIR::EM_Long == it->dir)
+				{
+					if (TRADE_OCFLAG::EM_Open == it->right->ocFlag)
+					{
+						leftPos += it->left->lot;
+						rightPos += it->right->lot;
+						ArbiPosLong += (it->left->lot / ArbiInst.getLeftTradeUnit());
+					}
+					else if (TRADE_OCFLAG::EM_Close == it->right->ocFlag)
+					{
+						leftPos -= it->left->lot;
+						rightPos -= it->right->lot;
+						ArbiPosShort += (it->left->lot / ArbiInst.getLeftTradeUnit());
+					}
+					else assert(0);
+				}
+				else if (TRADE_DIR::EM_Short == it->dir)
+				{
+					if (TRADE_OCFLAG::EM_Open == it->right->ocFlag)
+					{
+						leftPos += it->left->lot;
+						rightPos += it->right->lot;
+						ArbiPosShort -= (it->left->lot / ArbiInst.getLeftTradeUnit());
+					}
+					else if (TRADE_OCFLAG::EM_Close == it->right->ocFlag)
+					{
+						leftPos -= it->left->lot;
+						rightPos -= it->right->lot;
+						ArbiPosLong -= (it->left->lot / ArbiInst.getLeftTradeUnit());
+					}
+					else assert(0);
+				}
+				else
+				{
+					assert(0);
+				}
+				std::cout << "cur ArbiPosLong:" << ArbiPosLong << std::endl;
+				std::cout << "cur ArbiPosShort:" << ArbiPosShort << std::endl;
 				it->status = GetArbiStatus(*it);
 				break;
 			case ARBI_STATUS::EM_5_0:
@@ -1018,6 +1118,7 @@ namespace zc
 			}//switch
 		}// for
 		InterlockedExchange64(&(spin_Locker_arbOrders), FALSE);
+		std::cout << "out of UpdateArbiOrd...\n";
 	}
 
 	// 瘸腿单的撤销：要撤未成腿并平掉已成腿
@@ -1033,11 +1134,6 @@ namespace zc
 	// 超时了取消母单
 	void Arbitrage::procLeftLame(ArbOrdItem& arbiOrd)
 	{
-		time_t curtime = GetCurTime();
-		if (curtime - arbiOrd.left->ordOrderedTime > arbiOrd.timeout)
-		{
-			CancelArbi(arbiOrd);
-		}
 	}
 
 	// 瘸腿超时

@@ -52,18 +52,18 @@ namespace zc
 		int getLeftStatus();
 		int getRightStatus();
 		
-		void Send(int unit, TRADE_DIR arb_dir, TRADE_OCFLAG arb_oc);
+		void Send(int unit, TRADE_DIR arb_dir, TRADE_OCFLAG arb_oc, int nTmOt); // nTmOt超时时间
 
-		int buy(int unit); // 开多,unit-交易单位，priceType-价格类型：1 2 3 4
+		int buy(int unit, int nTmOt); // 开多,unit-交易单位，priceType-价格类型：1 2 3 4
 		int buy(int unit, float basisSpread, int price); // 用基差挂价，到了之后按价格类型送单
 
-		int sell(int unit); // 平多
+		int sell(int unit, int nTmOt); // 平多
 		int sell(int unit, float basisSpread, int price);
 
-		int sellshort(int unit); // 开空
+		int sellshort(int unit, int nTmOt); // 开空
 		int sellshort(int unit, float basisSpread, int price);
 
-		int buy2cover(int unit); // 平空
+		int buy2cover(int unit, int nTmOt); // 平空
 		int buy2cover(int unit, float basisSpread, int price);
 
 		float cumProfit;
@@ -73,8 +73,11 @@ namespace zc
 
 		// 超时处理，主要处理超时未成交的瘸腿合约组的处理
 		void ProcTimeOut(ArbOrdItem& arbiOrd);
-
-		int ArbiPos; // 套利合约持仓，完整的最小匹配对冲的一对左右腿算一组套利合约，long仓为正，short仓为负
+		int leftPos;
+		int rightPos;
+		int legPosShort;
+		int ArbiPosLong; // 套利合约持仓，完整的最小匹配对冲的一对左右腿算一组套利合约，long仓为正，short仓为负
+		int ArbiPosShort;
 		LEG_TYPE sendFirst; // 根据行情实时计算当前阶段送单应该哪条腿优先
 		void getAutoFirst();
 		void setSpot(LEG_TYPE lg);

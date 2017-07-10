@@ -154,14 +154,14 @@ void CTradeSpi::OnRspTradingAccountPasswordUpdate(CThostFtdcTradingAccountPasswo
 
 ///报单录入请求响应
 void CTradeSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("OnRspOrderInsert报单录入请求响应-%d.\n", nRequestID);
+	//printf("OnRspOrderInsert报单录入请求响应-%d.\n", nRequestID);
 	dqk_log::CLogApi LOG;
-	std::cout << "报单录入请求响应-OnRspOrderInsert-" << nRequestID << ",bIsLast-" << bIsLast << ",bIsLast-" << bIsLast << "\n";
+	//std::cout << "报单录入请求响应-OnRspOrderInsert-" << nRequestID << ",bIsLast-" << bIsLast << ",bIsLast-" << bIsLast << "\n";
 
 	if (NULL != pRspInfo)
 	{
-		printf("报单录入请求响应-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		std::cout << "pRspInfo:msgCode-" << pRspInfo->ErrorID << ",msg-" << pRspInfo->ErrorMsg << "\n";
+		//printf("报单录入请求响应-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
+		//std::cout << "pRspInfo:msgCode-" << pRspInfo->ErrorID << ",msg-" << pRspInfo->ErrorMsg << "\n";
 		if (0 == pRspInfo->ErrorID && 0 < iOrderAction)
 		{
 			CThostFtdcInputOrderActionField inputOrderAction;
@@ -182,7 +182,7 @@ void CTradeSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostF
 	if (NULL != pInputOrder)
 	{
 
-		std::cout << "OnRspOrderInsert:BrokerID-" << pInputOrder->BrokerID
+		LOG << "OnRspOrderInsert:BrokerID-" << pInputOrder->BrokerID
 			<< ",InvestorID-" << pInputOrder->InvestorID
 			<< ",InstrumentID-" << pInputOrder->InstrumentID
 			<< ",OrderRef-" << pInputOrder->OrderRef
@@ -511,7 +511,7 @@ void CTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInves
 			<< ",StrikeFrozenAmount-" << pInvestorPosition->StrikeFrozenAmount
 			<< ",AbandonFrozen-" << pInvestorPosition->AbandonFrozen << "\n";
 		zc::QryPositionFB* qryPos = static_cast<zc::QryPositionFB*>(queryFeedBack);
-		qryPos->posList.push_back(*pInvestorPosition);
+		if(pInvestorPosition->Position>0)qryPos->posList.push_back(*pInvestorPosition);
 	}
 
 };
@@ -936,12 +936,12 @@ void CTradeSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, boo
 
 ///报单通知
 void CTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder) {
-	printf("OnRtnOrder\n");
+	printf("OnRtnOrder %s\n", pOrder->OrderRef);
 	dqk_log::CLogApi log;
 	log << "报单通知-OnRtnOrder" << "\n";
 	if (NULL != pOrder)
 	{
-		std::cout << "pOrder:BrokerID-" << pOrder->BrokerID
+		log << "pOrder:BrokerID-" << pOrder->BrokerID
 			<< ",InvestorID-" << pOrder->InvestorID
 			<< ",InstrumentID-" << pOrder->InstrumentID
 			<< ",OrderRef-" << pOrder->OrderRef
@@ -1021,7 +1021,7 @@ void CTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder) {
 		}
 
 		po->ordOrderedTime = zc::GetCurTime();
-		if (THOST_FTDC_OSS_Accepted == pOrder->OrderSubmitStatus)
+		if (THOST_FTDC_OSS_Accepted == pOrder->OrderSubmitStatus && 0 == pOrder->VolumeTraded)
 		{
 			po->status = zc::LEG_STATUS::EM_LEG_ORDERED; // 已报
 			std::cout << "已报成功！\n";
@@ -1043,12 +1043,12 @@ void CTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder) {
 
 ///成交通知
 void CTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade) {
-	printf("OnRtnTrade\n");
+	printf("OnRtnTrade %s\n", pTrade->OrderRef);
 	dqk_log::CLogApi log;
 	log << "成交通知-OnRtnTrade" << "\n";
 	if (NULL != pTrade)
 	{
-		std::cout << "pTrade:BrokerID-" << pTrade->BrokerID
+		log << "pTrade:BrokerID-" << pTrade->BrokerID
 			<< ",InvestorID-" << pTrade->InvestorID
 			<< ",InstrumentID-" << pTrade->InstrumentID
 			<< ",OrderRef-" << pTrade->OrderRef
@@ -1093,12 +1093,12 @@ void CTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade) {
 		{
 			assert(po->elot == po->lot);
 			po->status = zc::LEG_STATUS::EM_LEG_TRADED;
-			std::cout << "订单已成交\n";
+			std::cout << "订单已全部成交: "<<pTrade->Volume<<"\n";
 		}
 		else
 		{
 			po->status = zc::LEG_STATUS::EM_LEG_ParTRADED;
-			std::cout << "订单部分成交\n";
+			std::cout << "订单部分成交数量: "<<pTrade->Volume<<"\n";
 		}
 	}
 	else
@@ -1376,9 +1376,11 @@ zc::PlannedOrderItem* CTradeSpi::getLocalOrder(const char* ref)
 	zc::PlannedOrderItem* po = nullptr;
 
 	while (InterlockedExchange64(&zc::Arbitrage::spin_Locker_ordbook, TRUE)){ Sleep(0); }
-	std::cout << "getLocalOrder... ordbook size:" << zc::Arbitrage::ordbook.size() << std::endl;
+	
+	//std::cout << "getLocalOrder... ordbook size:" << zc::Arbitrage::ordbook.size() << std::endl;
 	std::cout << "order ref to be found:" << ref << std::endl;
 	for (auto jt = zc::Arbitrage::ordbook.begin(); jt != zc::Arbitrage::ordbook.end(); ++jt)std::cout << "refs in ordbook:" << (*jt)->ordRef << std::endl;;
+
 	auto it = std::find_if(zc::Arbitrage::ordbook.begin(), zc::Arbitrage::ordbook.end(), [or](zc::PlannedOrderItem* in){return or == in->ordRef; });
 	if (zc::Arbitrage::ordbook.end() != it) po = (*it);
 	InterlockedExchange64(&zc::Arbitrage::spin_Locker_ordbook, FALSE);

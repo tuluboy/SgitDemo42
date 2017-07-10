@@ -16,7 +16,7 @@ namespace zc
 		PlannedOrderItem* first;
 		PlannedOrderItem* second;
 		
-		int timeout;
+		int _timeout;
 		ARBI_STATUS status; // 当前状态
 		time_t time0; // 订单生成时间
 		int sendDelay; // 发单延时 置0时表示马上发

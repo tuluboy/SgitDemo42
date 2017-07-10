@@ -204,7 +204,6 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 	std::string oc;
 	for (;;)
 	{
-
 		// 处理多个套利对
 		for (auto it = zc::Arbitrage::ArbiTrades.begin(); it != zc::Arbitrage::ArbiTrades.end(); ++it)
 		{
@@ -342,6 +341,7 @@ void execute(const int cmdnum, const CMdSpi in_mdspi, const CTradeSpi in_trdspi)
 	std::string ocflg;
 	int pricetype; // 1 2 3 4
 	int ns;
+	int unit;
 	switch (cmdnum)
 	{
 	case 1:
@@ -355,27 +355,28 @@ void execute(const int cmdnum, const CMdSpi in_mdspi, const CTradeSpi in_trdspi)
 		zc::RecieveInput("\nlong or short: ", dir, [](std::string& in)->bool{return true; });
 		zc::RecieveInput("\nopen or close: ", ocflg, [](std::string& in)->bool{return true; });
 		zc::RecieveInput("\nprice type(1-4): ", pricetype, [](int& in)->bool{return true; });
+		zc::RecieveInput("\ntrade unit: ", unit, [](int& in)->bool{return true; });
 		zc::Arbitrage::ArbiTrades[ind].priceType = pricetype;
 		if (dir == "long")
 		{
 			if (ocflg == "open")
 			{
-				zc::Arbitrage::ArbiTrades[ind].buy(1);
+				zc::Arbitrage::ArbiTrades[ind].buy(unit, 30);
 			}
 			else
 			{
-				zc::Arbitrage::ArbiTrades[ind].buy2cover(1);
+				zc::Arbitrage::ArbiTrades[ind].buy2cover(unit, 30);
 			}
 		}
 		else
 		{
 			if (ocflg == "open")
 			{
-				zc::Arbitrage::ArbiTrades[ind].sellshort(1);
+				zc::Arbitrage::ArbiTrades[ind].sellshort(1, 30);
 			}
 			else
 			{
-				zc::Arbitrage::ArbiTrades[ind].sell(1);
+				zc::Arbitrage::ArbiTrades[ind].sell(1, 30);
 			}
 		}
 
@@ -412,8 +413,8 @@ void execute(const int cmdnum, const CMdSpi in_mdspi, const CTradeSpi in_trdspi)
 		break;
 	case 99:
 		CThostFtdcUserPasswordUpdateField udpw;
-		strncpy(udpw.UserID, "08000037", sizeof(TThostFtdcUserIDType));
-		strncpy(udpw.OldPassword, "888888", sizeof(TThostFtdcPasswordType));
+		strncpy(udpw.UserID, "08000014", sizeof(TThostFtdcUserIDType));
+		strncpy(udpw.OldPassword, "666888", sizeof(TThostFtdcPasswordType));
 		strncpy(udpw.NewPassword, "501947", sizeof(TThostFtdcPasswordType));
 		udpw.BrokerID[0] = '\0';
 		in_trdspi.m_pReqApi->ReqUserPasswordUpdate(&udpw, GetRequsetID());
