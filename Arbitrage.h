@@ -25,7 +25,7 @@ namespace zc
 		static void UpdateSubOrdStatus();
 		static LONGLONG spin_Locker_ordbook;
 		static LONGLONG spin_Locker_arbOrders;
-		static bool AutoTradingEnabled;
+		
 		static QryInstrumentFB qrInstFB;
 		static QryPositionFB qrPosFB;
 		static int getArbiPos(CTradeSpi* pTrd); // 查询当前账户可以配对的套利持仓组合
@@ -100,7 +100,12 @@ namespace zc
 		int CloseFlag; // 平仓时避免连续送单
 		int priceType; // 1 2 3 4
 		ParamRowItem4DbQry tradeParam; // 套利参数
+		bool getAutoTrade(){ return AutoTradingEnabled; };
+		void SetAutoTrade(){ AutoTradingEnabled = true; doTradeCount = 0; };
+		void StopAutoTrade(){ AutoTradingEnabled = false; };
 	private:
+		bool AutoTradingEnabled;
+		int doTradeCount;
 		int maxTradeUnit; // 交易单位的上限
 		void DoTrade();
 		int buyLeft(PlannedOrderItem& t); // 买开左腿

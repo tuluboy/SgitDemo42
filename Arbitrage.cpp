@@ -21,13 +21,13 @@ namespace zc
 	std::vector<PlannedOrderItem*> Arbitrage::ordbook; // 送单计划表
 	LONGLONG Arbitrage::spin_Locker_ordbook = 0; // ordbook的锁
 	LONGLONG Arbitrage::spin_Locker_arbOrders = 0;
-	bool Arbitrage::AutoTradingEnabled = false;
 	QryInstrumentFB Arbitrage::qrInstFB;
 	QryPositionFB Arbitrage::qrPosFB;
 	Arbitrage::Arbitrage(CMdSpi* pMd, CTradeSpi* pTrd) :pMdSpi(pMd), pTrdSpi(pTrd)
 	{
 		ArbiPosLong = 0; ArbiPosShort = 0;
 		SendFlag = 0;
+		AutoTradingEnabled = false;
 	}
 
 	void Arbitrage::Init(const char* leftId, const char* rightId, int leftunit, int rightunit)
@@ -292,6 +292,7 @@ namespace zc
 	// 触发交易逻辑计算
 	void Arbitrage::DoTrade()
 	{
+		if (doTradeCount++ % 10 == 0) std::cout << ArbiInst.ArbiInstID<< " Auto trade is running\n";
 		// 两腿都要有数据才执行交易
 		if (ArbiInst.leftTick.LastPrice < 0 || ArbiInst.rightTick.LastPrice < 0) return;
 		// 套利逻辑
@@ -320,7 +321,7 @@ namespace zc
 				CloseFlag = 0;
 			}
 		}
-		else if (ArbiPosShort > 0 && ArbiInst.longBasisSpread1 < ArbiInst.getSpreadLower2())
+		else if (ArbiPosShort < 0 && ArbiInst.longBasisSpread1 < ArbiInst.getSpreadLower2())
 		{
 			if (0 == CloseFlag)
 			{
@@ -328,7 +329,7 @@ namespace zc
 				CloseFlag = 1;
 			}
 		}
-		else if (ArbiPosShort > 0 && ArbiInst.longBasisSpread1 < ArbiInst.getSpreadLower1())
+		else if (ArbiPosShort < 0 && ArbiInst.longBasisSpread1 < ArbiInst.getSpreadLower1())
 		{
 			if (0 == CloseFlag)
 			{
@@ -345,11 +346,14 @@ namespace zc
 
 	void Arbitrage::Send(int unit, TRADE_DIR arb_dir, TRADE_OCFLAG arb_oc, int nTimeOut)
 	{
-		while (InterlockedExchange64(&spin_Locker_arbOrders, TRUE)){ Sleep(0); }
+		while (InterlockedExchange64(&spin_Locker_ordbook, TRUE)){ Sleep(0); }
+		//while (InterlockedExchange64(&spin_Locker_arbOrders, TRUE)){ Sleep(0); }
 		arbOrders.push_back(ArbOrdItem()); // 需要加锁
 		ArbOrdItem& newOrd = arbOrders.back();
 		newOrd.dir = arb_dir;
-		while (InterlockedExchange64(&spin_Locker_ordbook, TRUE)){ Sleep(0); }
+		std::cout << "spin_Locker_ordbook....\n";
+		
+		std::cout << "spin_Locker_ordbook....\n";
 		ordbook.push_back(new PlannedOrderItem);
 		newOrd.left = ordbook.back();
 		ordbook.push_back(new PlannedOrderItem);
@@ -424,13 +428,14 @@ namespace zc
 		if (LEG_TYPE::EM_LeftLeg == sendFirst)newOrd.setLeftFirst(); // initArbi中被配置
 		else if (LEG_TYPE::EM_RightLeg == sendFirst)newOrd.setRightFirst();
 		else if (LEG_TYPE::EM_BothLegs == sendFirst)newOrd.setBothFirst();
-
-		InterlockedExchange64(&spin_Locker_ordbook, FALSE);
+		std::cout << "....spin_Locker_ordbook\n";
+		
 		std::cout << "right ask: " << ArbiInst.rightTick.AskPrice1 << " right bid: " << ArbiInst.rightTick.BidPrice1 << std::endl;
 		std::cout << "left ask: " << ArbiInst.leftTick.AskPrice1 << " left bid: " << ArbiInst.leftTick.BidPrice1 << std::endl;
 		std::cout << "buy a pair at:" << ArbiInst.longBasisSpread1 << " " << unit << std::endl;
 		std::cout << "******************************************************************************************\n";
-		InterlockedExchange64(&spin_Locker_arbOrders, FALSE);
+		//InterlockedExchange64(&spin_Locker_arbOrders, FALSE);
+		InterlockedExchange64(&spin_Locker_ordbook, FALSE);
 	}
 
 	// 即时开多,unit-交易单位，
@@ -597,7 +602,7 @@ namespace zc
 	}
 
 	// 打印跳转状态
-#define DbgLog std::cout << "cur status:"<<Arbi_Status2Str(it->status)<<std::endl
+#define DbgLog std::cout << "\ncur status:"<<Arbi_Status2Str(it->status)<<std::endl
 
 	zc::ARBI_STATUS Arbitrage::GetArbiStatus(zc::ArbOrdItem& it)
 	{
@@ -607,7 +612,7 @@ namespace zc
 	// 刷新套利母单的状态
 	void Arbitrage::UpdateArbiOrd()
 	{
-		std::cout << "Into UpdateArbiOrd...\n";
+		//std::cout << "Into UpdateArbiOrd...\n";
 		// 套利合约状态定义：0-待送 1-已报 2-部成 3-全成 4-部撤 5-全撤 6-平仓
 		// 查询左右腿成交状态，数据从Arbitrage::ordbook中获取
 		// 母单状态：未送，已送未成，右成左瘸，左成右瘸，全成
@@ -616,6 +621,7 @@ namespace zc
 		// 更新系统时间
 		time_t curtime = GetCurTime();
 		while (InterlockedExchange64(&(spin_Locker_arbOrders), TRUE)){ Sleep(0); }
+		//std::cout << "Into InterlockedExchange64..spin_Locker_arbOrders....\n";
 		for (auto it = arbOrders.begin(); it != arbOrders.end(); ++it)
 		{
 			//std::cout << Arbi_Status2Str(it->status);
@@ -1118,7 +1124,7 @@ namespace zc
 			}//switch
 		}// for
 		InterlockedExchange64(&(spin_Locker_arbOrders), FALSE);
-		std::cout << "out of UpdateArbiOrd...\n";
+		//std::cout << "out of UpdateArbiOrd...\n";
 	}
 
 	// 瘸腿单的撤销：要撤未成腿并平掉已成腿

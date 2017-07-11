@@ -16,13 +16,13 @@ namespace zc
 {
 	typedef long long LONGLONG;
 	typedef enum TRADE_DIR{ EM_Long = THOST_FTDC_D_Buy, EM_Short = THOST_FTDC_D_Sell };
-	typedef enum TRADE_OCFLAG{EM_Open, EM_Close};
-	typedef enum LEG_TYPE{ EM_LeftLeg, EM_RightLeg, EM_Auto, EM_BothLegs, EM_NullLeg }; // EM_BothLegs -- 两腿一起发
-	typedef enum LEG_STATUS{ EM_LEG_SENDREADY, EM_LEG_SENDED, EM_LEG_ORDERED, EM_LEG_TRADED, EM_LEG_ParTRADED, EM_LEG_CANCELREADY, EM_LEG_CANCELSENED, EM_LEG_ParCANCELED, EM_LEG_CANCELED, EM_LEG_STATUS_NULL };
+	typedef enum TRADE_OCFLAG{EM_Open = 3, EM_Close};
+	typedef enum LEG_TYPE{ EM_NullLeg, EM_LeftLeg, EM_RightLeg, EM_Auto, EM_BothLegs }; // EM_BothLegs -- 两腿一起发
+	typedef enum LEG_STATUS{ EM_LEG_STATUS_NULL, EM_LEG_SENDED, EM_LEG_SENDREADY, EM_LEG_ORDERED, EM_LEG_TRADED, EM_LEG_ParTRADED, EM_LEG_CANCELREADY, EM_LEG_CANCELSENED, EM_LEG_ParCANCELED, EM_LEG_CANCELED };
 	// 套利合约状态定义：0-待送 1-已报 2-部成 3-全成 4-部撤 5-全撤 6-平仓 9-null
 	typedef enum ARBI_STATUS{ EM_9_9, EM_0_0, EM_1_0, EM_1_1, EM_2_0, EM_3_0, EM_4_0, EM_4_5, EM_2_1, EM_1_2, EM_2_2, EM_4_1, EM_5_0, EM_6_1, EM_6_0, EM_3_5, EM_3_1, EM_1_3,  EM_6_4, EM_6_5, EM_3_2, EM_2_3, EM_3_4, EM_3_6, EM_6_6, EM_3_3, EM_ARB_LONG_OPENED, EM_ARB_LONG_CLOSED, EM_ARB_SHORT_OPENED, EM_ARB_SHORT_CLOSED };
-	typedef enum ARBI_COMMAND{ EM_SEND_ORD,EM_CANCEL_ORD};
-	typedef enum LEG_CONDITION {EM_OK, EM_WAIT, EM_CANCEL, EM_COND_NULL}; // init-可以马上送单 wait-等待超时送单 cancel-可以马上撤单 dead-失效，后续不进行任何操作
+	typedef enum ARBI_COMMAND{ EM_CMD_NULL, EM_SEND_ORD,EM_CANCEL_ORD};
+	typedef enum LEG_CONDITION { EM_COND_NULL=9,EM_OK, EM_WAIT, EM_CANCEL }; // init-可以马上送单 wait-等待超时送单 cancel-可以马上撤单 dead-失效，后续不进行任何操作
 	typedef enum ARBI_BALANCE{ EM_BL_NULL, EM_BL_CUT, EM_BL_FILL };
 	struct ArbOrdItem;
 	class Arbitrage;

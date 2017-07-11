@@ -23,6 +23,11 @@ public:
 		MYSQL_ROW row;
 		//mysql_query(conn, qrySql.c_str());
 		result = mysql_store_result(conn);
+		if (!result)
+		{
+			std::cout << "db qry result null.....\n";
+			return;
+		}
 		int num_fields = mysql_num_fields(result);
 		nRows = mysql_num_rows(result);
 		if (0 == nRows)

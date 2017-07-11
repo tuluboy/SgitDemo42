@@ -204,6 +204,7 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 	std::string oc;
 	for (;;)
 	{
+		while (InterlockedExchange64(&(zc::Arbitrage::spin_Locker_ordbook), TRUE)){ Sleep(0); }
 		// 处理多个套利对
 		for (auto it = zc::Arbitrage::ArbiTrades.begin(); it != zc::Arbitrage::ArbiTrades.end(); ++it)
 		{
@@ -215,7 +216,9 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 		// 送单失败的记录后重新发送
 		// 超时未成的撤单重发
 		// 条件单模式：定时发单，超时撤单，成交后触发新单
-		while (InterlockedExchange64(&(zc::Arbitrage::spin_Locker_ordbook), TRUE)){ Sleep(0); }
+		//std::cout << "ready into InterlockedExchange64.. spin_Locker_ordbook ..\n";
+		
+		//std::cout << "already into InterlockedExchange64.. spin_Locker_ordbook ..\n";
 		for (auto it = zc::Arbitrage::ordbook.begin(); it != zc::Arbitrage::ordbook.end(); ++it)
 		{
 			// 状态更新
@@ -229,6 +232,7 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 				if (zc::LEG_STATUS::EM_LEG_SENDREADY == (*it)->status)
 				{
 					// Send后面必须设置status，否则会重复送单
+					std::cout <<"status:"<<(*it)->status<<" condi:"<<(*it)->condition<< " send issue: " << (*it)->instId << std::endl;;
 					(*it)->condition = zc::LEG_CONDITION::EM_COND_NULL;
 					(*it)->ordSendedTime = zc::GetCurTime();
 					(*it)->ordRef = ++(*it)->pTrdSpi->OrderRef;
@@ -287,6 +291,7 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 			}//switch
 		}//for
 		InterlockedExchange64(&(zc::Arbitrage::spin_Locker_ordbook), FALSE);
+		//std::cout << "out InterlockedExchange64.. spin_Locker_ordbook ..\n";
 		if (111 != pTrdSpi->running)break;
 	}
 }
@@ -309,7 +314,7 @@ void dispMenu()
 
 void getCmd(int& cmd)
 {
-	zc::RecieveInput("\ninput your cmd:  ", cmd, [](int& in)->bool{if (in < 0 || in>9)return false; else return true; });
+	zc::RecieveInput("\ninput your cmd:  ", cmd, [](int& in)->bool{if (in < 0 || in>99){ dispMenu(); return false; } else return true; });
 }
 
 void disppairs()
@@ -382,8 +387,20 @@ void execute(const int cmdnum, const CMdSpi in_mdspi, const CTradeSpi in_trdspi)
 
 		break;
 	case 3:
-		std::cout << "Notice: Auto trading will be enabled!" << std::endl;
-		zc::Arbitrage::AutoTradingEnabled = !zc::Arbitrage::AutoTradingEnabled;
+		disppairs();
+		ns = zc::Arbitrage::ArbiTrades.size();
+		zc::RecieveInput("\nwhich to be enable/disable AutoTrading:  ", ind, [ns](int& in)->bool{return in < ns; });
+		if (false == zc::Arbitrage::ArbiTrades[ind].getAutoTrade())
+		{
+			std::cout << "Notice: Auto trading will be enabled!" << std::endl;
+			zc::Arbitrage::ArbiTrades[ind].SetAutoTrade();
+		}
+		else
+		{
+			std::cout << "Notice: Auto trading will be disabled!" << std::endl;
+			zc::Arbitrage::ArbiTrades[ind].StopAutoTrade();
+		}
+		
 		break;
 	case 4:
 		dispspread();
@@ -447,7 +464,7 @@ int main(int argc, char** argv)
 	//	strcpy(LoginField.Password, "888888");
 	//	strcpy(LoginField.BrokerID, "");
 	strcpy(LoginField.UserID, "08000014");
-	strcpy(LoginField.Password, "666888");
+	strcpy(LoginField.Password, "501947");
 	//创建交易响应对象
 	CTradeSpi tradeSpi(pTradeApi, &LoginField);
 	strcpy(tradeSpi.InvestorID_Future, "08000014");
@@ -584,11 +601,10 @@ int main(int argc, char** argv)
 	memset(&InputOrder, 0, sizeof(InputOrder));
 	strncpy(InputOrder.BrokerID, LoginField.BrokerID, sizeof(InputOrder.BrokerID));//会员号
 	strncpy(InputOrder.UserID, LoginField.UserID, sizeof(InputOrder.UserID));//交易员
-
+	dispMenu();
 	int cmd;
 	while (1)
 	{
-		dispMenu();
 		getCmd(cmd);
 		std::cout << "\n";
 		if (9 == cmd)
@@ -607,7 +623,7 @@ int main(int argc, char** argv)
 			return 0;
 		}
 		execute(cmd, mdSpi, tradeSpi);
-		Sleep(3000);
+		Sleep(1000);
 #ifdef _USE_MYSQL_			
 		if (strlen(mdSpi.mTradingDay) == 8)
 		{

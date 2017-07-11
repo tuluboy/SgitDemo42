@@ -1037,7 +1037,7 @@ void CTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder) {
 	else
 	{
 		// √ª’“µΩ
-		std::cout << "OnRtnOrder ERROR: local order: " << pOrder->OrderRef << " mei zhao dao\n";
+		std::cout << "OnRtnOrder ERROR: local order: " << pOrder->OrderRef << " mei zhao dao mei zhao dao ################################ mei zhao dao\n";
 	}
 };
 
