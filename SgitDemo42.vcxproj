@@ -168,6 +168,7 @@
     <ClCompile Include="Arbitrage.cpp" />
     <ClCompile Include="ArbOrdItem.cpp" />
     <ClCompile Include="dbman.cpp" />
+    <ClCompile Include="DtTm.cpp" />
     <ClCompile Include="GetParam.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mdspi.cpp" />
@@ -186,6 +187,7 @@
     <ClInclude Include="cirque.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="dbman.h" />
+    <ClInclude Include="DtTm.h" />
     <ClInclude Include="GetParam.h" />
     <ClInclude Include="MdSpi.h" />
     <ClInclude Include="TradeChannel.h" />

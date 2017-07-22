@@ -22,7 +22,7 @@ namespace zc
 		int sendDelay; // 发单延时 置0时表示马上发
 		int cancelDelay; // 已送的单超出此时间没有成交就撤单
 		float entrySpread; // 入场基差
-		float exitSpread; // 出厂基差
+		float exitSpread; // 出场基差
 		float entryCommission; // 入场时交易成本
 		float exitCommission; // 出厂时交易成本
 		Arbitrage* arbit; // 来自哪个套利合约

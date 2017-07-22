@@ -54,6 +54,9 @@
     <ClCompile Include="dbman.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DtTm.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\s_log\log.h">
@@ -102,6 +105,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="dbman.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DtTm.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

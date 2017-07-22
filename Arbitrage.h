@@ -83,6 +83,8 @@ namespace zc
 		void setSpot(LEG_TYPE lg);
 		void setOpenBalance(ARBI_BALANCE blc){ openBalanceMethod = blc; };
 		void setCloseBalance(ARBI_BALANCE blc){ closeBalanceMethod = blc; };
+		double avgLongEntrySpread; // 买套利对平均成本
+		double avgShortEntrySpread; // 卖套利对平均成本
 	public:
 		void UpdateLeftTick(fstech::CThostFtdcDepthMarketDataField& tick); // 触发交易逻辑计算
 		void UpdateRightTick(fstech::CThostFtdcDepthMarketDataField& tick); // 触发交易逻辑计算

@@ -16,6 +16,8 @@
 #include "zc_util.h"
 #include "ArbOrdItem.h"
 #include "dbman.h"
+//#include "DtTm.h"
+#include <iomanip>
 
 #ifdef _USE_MYSQL_
 
@@ -217,7 +219,7 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 		// 超时未成的撤单重发
 		// 条件单模式：定时发单，超时撤单，成交后触发新单
 		//std::cout << "ready into InterlockedExchange64.. spin_Locker_ordbook ..\n";
-		
+
 		//std::cout << "already into InterlockedExchange64.. spin_Locker_ordbook ..\n";
 		for (auto it = zc::Arbitrage::ordbook.begin(); it != zc::Arbitrage::ordbook.end(); ++it)
 		{
@@ -232,7 +234,7 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 				if (zc::LEG_STATUS::EM_LEG_SENDREADY == (*it)->status)
 				{
 					// Send后面必须设置status，否则会重复送单
-					std::cout <<"status:"<<(*it)->status<<" condi:"<<(*it)->condition<< " send issue: " << (*it)->instId << std::endl;;
+					std::cout << "status:" << (*it)->status << " condi:" << (*it)->condition << " send issue: " << (*it)->instId << std::endl;;
 					(*it)->condition = zc::LEG_CONDITION::EM_COND_NULL;
 					(*it)->ordSendedTime = zc::GetCurTime();
 					(*it)->ordRef = ++(*it)->pTrdSpi->OrderRef;
@@ -325,6 +327,7 @@ void disppairs()
 	{
 		std::cout << "\t[" << i << "]" << zc::Arbitrage::ArbiTrades[i].ArbiInst.ArbiInstID << std::endl;
 	}
+	std::cout << std::endl;
 }
 
 void dispspread()
@@ -351,6 +354,10 @@ void execute(const int cmdnum, const CMdSpi in_mdspi, const CTradeSpi in_trdspi)
 	{
 	case 1:
 		disppairs();
+		for (auto it = zc::Arbitrage::ArbiTrades.begin(); it != zc::Arbitrage::ArbiTrades.end(); ++it)
+		{
+			std::cout << it->ArbiInst.ArbiInstID << "  arbiPos long:" << it->ArbiPosLong << " arbiPos short:" << it->ArbiPosShort << std::endl;
+		}
 		break;
 	case 2:
 		disppairs();
@@ -377,11 +384,11 @@ void execute(const int cmdnum, const CMdSpi in_mdspi, const CTradeSpi in_trdspi)
 		{
 			if (ocflg == "open")
 			{
-				zc::Arbitrage::ArbiTrades[ind].sellshort(1, 30);
+				zc::Arbitrage::ArbiTrades[ind].sellshort(unit, 30);
 			}
 			else
 			{
-				zc::Arbitrage::ArbiTrades[ind].sell(1, 30);
+				zc::Arbitrage::ArbiTrades[ind].sell(unit, 30);
 			}
 		}
 
@@ -400,13 +407,12 @@ void execute(const int cmdnum, const CMdSpi in_mdspi, const CTradeSpi in_trdspi)
 			std::cout << "Notice: Auto trading will be disabled!" << std::endl;
 			zc::Arbitrage::ArbiTrades[ind].StopAutoTrade();
 		}
-		
+
 		break;
 	case 4:
 		dispspread();
 		break;
 	case 5:
-		std::cout << "Current Arbitrage Pairs:\n";
 		disppairs();
 		ns = zc::Arbitrage::ArbiTrades.size();
 		zc::RecieveInput("\nwhich to be modified:  ", ind, [ns](int& in)->bool{return in < ns; });
@@ -418,21 +424,27 @@ void execute(const int cmdnum, const CMdSpi in_mdspi, const CTradeSpi in_trdspi)
 		zc::Arbitrage::ArbiTrades[ind].ArbiInst.setSpreadUpper2(toplev + 1);
 		break;
 	case 6:
-		std::cout << "Current Arbitrage Pairs:\n";
 		disppairs();
 		ns = zc::Arbitrage::ArbiTrades.size();
-		zc::RecieveInput("\nwhich to be modified:  ", ind, [ns](int& in)->bool{return in < ns; });
-
-		std::cout << "Lower1: " << zc::Arbitrage::ArbiTrades[ind].ArbiInst.getSpreadLower1() << std::endl;
-		std::cout << "Upper1: " << zc::Arbitrage::ArbiTrades[ind].ArbiInst.getSpreadUpper1() << std::endl;
-		std::cout << "Lower2: " << zc::Arbitrage::ArbiTrades[ind].ArbiInst.getSpreadLower2() << std::endl;
-		std::cout << "Upper2: " << zc::Arbitrage::ArbiTrades[ind].ArbiInst.getSpreadUpper2() << std::endl;
+		//zc::RecieveInput("\nwhich to be showed:  ", ind, [ns](int& in)->bool{return in < ns; });
+		std::cout << std::left << std::setw(18) << "ArbiInstID" << std::right << std::setw(10) << "Lower1" << std::right << std::setw(10) << "Upper1" << std::right << std::setw(10) << "Lower2" << std::right << std::setw(10) << "Upper2" << std::endl;
+		for (int i = 0; i < ns; i++)
+		{
+			std::cout << std::left << std::setw(18) << zc::Arbitrage::ArbiTrades[i].ArbiInst.ArbiInstID;
+			std::cout << std::right << std::setw(10) << zc::Arbitrage::ArbiTrades[i].ArbiInst.getSpreadLower1();
+			std::cout << std::right << std::setw(10) << zc::Arbitrage::ArbiTrades[i].ArbiInst.getSpreadUpper1();
+			std::cout << std::right << std::setw(10) << zc::Arbitrage::ArbiTrades[i].ArbiInst.getSpreadLower2();
+			std::cout << std::right << std::setw(10) << zc::Arbitrage::ArbiTrades[i].ArbiInst.getSpreadUpper2() << std::endl;
+		}
+		break;
+	case 9:
+		dispMenu();
 		break;
 	case 99:
 		CThostFtdcUserPasswordUpdateField udpw;
 		strncpy(udpw.UserID, "08000014", sizeof(TThostFtdcUserIDType));
-		strncpy(udpw.OldPassword, "666888", sizeof(TThostFtdcPasswordType));
-		strncpy(udpw.NewPassword, "501947", sizeof(TThostFtdcPasswordType));
+		strncpy(udpw.OldPassword, "501947", sizeof(TThostFtdcPasswordType));
+		strncpy(udpw.NewPassword, "666888", sizeof(TThostFtdcPasswordType));
 		udpw.BrokerID[0] = '\0';
 		in_trdspi.m_pReqApi->ReqUserPasswordUpdate(&udpw, GetRequsetID());
 		Sleep(3000);
@@ -448,225 +460,125 @@ int main(int argc, char** argv)
 	test();
 	return 0;
 #endif
-	std::cout << "############黄金白银期现套利系统###########\n";
-	CGetParam getParam;
-
-	//创建交易api对象
-	CThostFtdcTraderApi* pTradeApi = CThostFtdcTraderApi::CreateFtdcTraderApi("");
-	//创建行情api对象
-	CThostFtdcMdApi* pMdApi = CThostFtdcMdApi::CreateFtdcMdApi();
-
-	//获取登陆参数
-	CThostFtdcReqUserLoginField LoginField;
-	memset(&LoginField, 0, sizeof(LoginField));
-	//	getParam.GetLoginField(LoginField);
-	//	strcpy(LoginField.UserID, "08000037");
-	//	strcpy(LoginField.Password, "888888");
-	//	strcpy(LoginField.BrokerID, "");
-	strcpy(LoginField.UserID, "08000014");
-	strcpy(LoginField.Password, "501947");
-	//创建交易响应对象
-	CTradeSpi tradeSpi(pTradeApi, &LoginField);
-	strcpy(tradeSpi.InvestorID_Future, "08000014");
-	strcpy(tradeSpi.InvestorID_Spot, "06000014");
-	//创建行情响应对象
-	CMdSpi mdSpi(pMdApi, &LoginField);
-
-	//注册响应对象
-	pTradeApi->RegisterSpi(&tradeSpi);
-	pTradeApi->SubscribePrivateTopic(THOST_TERT_QUICK);
-	pMdApi->RegisterSpi(&mdSpi);
-
-	//获取ip
-	char tradeIp[36];
-	char quotIp[36];
-	//	memset(tradeIp,0,sizeof(tradeIp));
-	//	memset(quotIp,0,sizeof(quotIp));
-	//	int i = getParam.GetIpField(tradeIp,quotIp);
-	//	strcpy(tradeIp,"tcp://192.168.1.206:37776");
-	//	strcpy(quotIp,"tcp://192.168.1.206:37777");
-	//	strcpy(tradeIp, "tcp://140.206.81.6:27776");
-	//	strcpy(quotIp, "tcp://140.206.81.6:27777");
-	strcpy(tradeIp, "tcp://140.206.81.6:27776");
-	strcpy(quotIp, "tcp://140.206.81.6:27777");
-	//注册交易ip
-	pTradeApi->RegisterFront(tradeIp);
-	//注册行情ip
-	pMdApi->RegisterFront(quotIp);
-
-	//init
-	std::cout << "traderApi init...\n";
-	pTradeApi->Init();
-
-	//Sleep(3000);
-	std::cout << "mdApi init ...\n";
-	pMdApi->Init();
-
-	Sleep(5000);
-	//tradeSpi.QryInvestorId();
-	//Sleep(2000);
-	int dbport = 3306;
-	std::string ip("192.168.1.201"), usr("root"), pswd("ct_1234"), lib("");
-	g_pDb = new dbman(ip, dbport, usr, pswd, lib);
-	g_pDb->init();
-
-	zc::Arbitrage::initArbi(&mdSpi, &tradeSpi);
-
-	Sleep(2000);
-	std::thread tickThread(TickFunc, &mdSpi);
-
-	std::thread ordThread(orderFunc, &tradeSpi);
-
-	//登陆在OnConnect()函数里进行.
-#ifdef _USE_MYSQL_
-	MYSQL *conn;
-	MYSQL *conn1;
-	MYSQL_RES *result;
-	MYSQL_ROW row;
-	int num_fields;
-	int num_rows;
-	int i;
-	conn = mysql_init(NULL);
-	if (conn == NULL)
+	try
 	{
-		printf("Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
-		exit(1);
-	}
-	conn1 = mysql_init(NULL);
-	if (conn1 == NULL)
-	{
-		printf("Error %u: %s\n", mysql_errno(conn1), mysql_error(conn1));
-		exit(1);
-	}
-	if (mysql_real_connect(conn, "192.168.1.201", "root", "ct_1234", "trade", 3306, NULL, 0) == NULL)
-	{
-		printf("Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
-		exit(1);
-	}
-	if (mysql_real_connect(conn1, "192.168.1.201", "root", "ct_1234", "auag", 3306, NULL, 0) == NULL)
-	{
-		printf("Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
-		exit(1);
-	}
-#endif
+		std::cout << "############黄金白银期现套利系统###########\n";
+		//创建交易api对象
+		CThostFtdcTraderApi* pTradeApi = CThostFtdcTraderApi::CreateFtdcTraderApi("");
+		//创建行情api对象
+		CThostFtdcMdApi* pMdApi = CThostFtdcMdApi::CreateFtdcMdApi();
 
-	time_t rawtime;
-	time(&rawtime);
-	char tbname[12] = "now_data";
-	char tbnamehq[30] = "fs_";
-	char   pblgtime[20];
-	strftime(pblgtime, 20, "%Y%m%d", localtime(&rawtime));
-	strcat(tbnamehq, pblgtime);
-	cout << "strftime   " << pblgtime << endl;
-#ifdef _USE_MYSQL_
-	char sql[1000];
-	if (!isindb(conn, tbname))
-	{
-		sprintf(sql, "CREATE TABLE %s (id INT AUTO_INCREMENT PRIMARY KEY,date_time DATETIME,code VARCHAR(12),lastprice DOUBLE,\
-					 					 					 volume DOUBLE,bid1 DOUBLE,bidvolume1 DOUBLE,ask1 DOUBLE,askvolume1 DOUBLE)", tbname);
-		mysql_query(conn, sql);
-		sprintf(sql, "INSERT INTO %s (code) VALUES(%s)", tbname, "\'Ag(T+D)\'");
-		mysql_query(conn, sql);
-		sprintf(sql, "INSERT INTO %s (code) VALUES(%s)", tbname, "\'Au(T+D)\'");
-		mysql_query(conn, sql);
-		sprintf(sql, "INSERT INTO %s (code) VALUES(%s)", tbname, "\'Ag1712\'");
-		mysql_query(conn, sql);
-		sprintf(sql, "INSERT INTO %s (code) VALUES(%s)", tbname, "\'Au1712\'");
-		mysql_query(conn, sql);
-		sprintf(sql, "INSERT INTO %s (code) VALUES(%s)", tbname, "\'mAu(T+D)\'");
-		mysql_query(conn, sql);
-		/*
-		if (!isindb(conn1, tbnamehq))
+		//获取登陆参数
+		CThostFtdcReqUserLoginField LoginField;
+		memset(&LoginField, 0, sizeof(LoginField));
+		//	getParam.GetLoginField(LoginField);
+		//	strcpy(LoginField.UserID, "08000037");
+		//	strcpy(LoginField.Password, "888888");
+		//	strcpy(LoginField.BrokerID, "");
+		std::string RunningType;
+		zc::RecieveInput("\nVirtual trading or Real trading[V/Real]:  ", RunningType, [](std::string& in)->bool{if (in == "V" || in == "v" || in == "Real")return true; else return false; });
+		std::string FuserID, pswd, TuserID;
+		char tradeIp[36];
+		char quotIp[36];
+		if (RunningType == "Real")
 		{
-		sprintf(sql, "CREATE TABLE %s (id INT AUTO_INCREMENT PRIMARY KEY,date_time DATETIME,InstrumentID VARCHAR(12),LastPrice DOUBLE,\
-		Volume DOUBLE,Turnover DOUBLE,OpenInterest DOUBLE,BidPrice1 DOUBLE,BidVolume1 DOUBLE,AskPrice1 DOUBLE,AskVolume1 DOUBLE)", tbnamehq);
-		mysql_query(conn1, sql);
+			strcpy(tradeIp, "tcp://140.207.169.150:20022");
+			strcpy(quotIp, "tcp://140.207.169.150:20023");
+			//strcpy(tradeIp, "192.168.20.13:7776");
+			//strcpy(quotIp, "192.168.20.13:7777");
+			FuserID = "12200393";
+			TuserID = "165766";
+			pswd = "norway%1";
 		}
-		ofstream outf;
-		outf.open(".\\out\\0.csv", ios::out);
-		outf << "TradingDay" << "," << "InstrumentID" << "," << "LastPrice" << "," << "PreSettlementPrice" << "," << \
-		"PreClosePrice" << "," << "OpenPrice" << "," << "HighestPrice" << "," << "LowestPrice" << "," << "Volume" << "," << \
-		"Turnover" << "," << "OpenInterest" << "," << "SettlementPrice" << "," << "UpdateTime" << "," << "UpdateMillisec" << "," << \
-		"BidPrice1" << "," << "BidVolume1" << "," << "AskPrice1" << "," << "AskVolume1" << "," << "AveragePrice" << "," << \
-		"ActionDay" << endl;*/
+		else
+		{
+			strcpy(tradeIp, "tcp://140.206.81.6:27776");
+			strcpy(quotIp, "tcp://140.206.81.6:27777");
+			FuserID = "08000014";
+			TuserID = "06000014";
+			pswd = "888888";
+		}
+
+		strcpy(LoginField.UserID, FuserID.c_str());
+		strcpy(LoginField.Password, pswd.c_str());
+		//创建交易响应对象
+		CTradeSpi tradeSpi(pTradeApi, &LoginField);
+		strcpy(tradeSpi.InvestorID_Future, FuserID.c_str());
+		strcpy(tradeSpi.InvestorID_Spot, TuserID.c_str());
+		//创建行情响应对象
+		CMdSpi mdSpi(pMdApi, &LoginField);
+
+		//注册响应对象
+		pTradeApi->RegisterSpi(&tradeSpi);
+		pTradeApi->SubscribePrivateTopic(THOST_TERT_QUICK);
+		pMdApi->RegisterSpi(&mdSpi);
+
+		//注册交易ip
+		pTradeApi->RegisterFront(tradeIp);
+		//注册行情ip
+		pMdApi->RegisterFront(quotIp);
+
+		//init
+		std::cout << "traderApi init...\n";
+		pTradeApi->Init();
+
+		//Sleep(3000);
+		std::cout << "mdApi init ...\n";
+		pMdApi->Init();
+
+		Sleep(5000);
+		//tradeSpi.QryInvestorId();
+		//Sleep(2000);
+		int dbport = 3306;
+		std::string dbip("192.168.1.201"), dbusr("root"), dbpswd("ct_1234"), lib("");
+		g_pDb = new dbman(dbip, dbport, dbusr, dbpswd, lib);
+		g_pDb->init();
+
+		zc::Arbitrage::initArbi(&mdSpi, &tradeSpi);
+
+		Sleep(2000);
+		std::thread tickThread(TickFunc, &mdSpi);
+
+		std::thread ordThread(orderFunc, &tradeSpi);
+
+		int fnum = 0;
+		int rnum = 10000;
+		string fname;
+		string dtime, tem_str;
+		const char *cdime;
+		CThostFtdcInputOrderField InputOrder;
+		memset(&InputOrder, 0, sizeof(InputOrder));
+		strncpy(InputOrder.BrokerID, LoginField.BrokerID, sizeof(InputOrder.BrokerID));//会员号
+		strncpy(InputOrder.UserID, LoginField.UserID, sizeof(InputOrder.UserID));//交易员
+		dispMenu();
+		int cmd;
+		while (1)
+		{
+			getCmd(cmd);
+			std::cout << "\n";
+			if (0 == cmd)
+			{
+				std::cout << "exiting......\n";
+				tradeSpi.quit();
+				ordThread.join();
+				mdSpi.quit();
+				tickThread.join();
+				std::cout << "exit......\n";
+				Sleep(2000);
+				return 0;
+			}
+			execute(cmd, mdSpi, tradeSpi);
+			Sleep(1000);
+		}
+		delete g_pDb;
+		g_pDb = nullptr;
 	}
-#endif
-
-	int fnum = 0;
-	int rnum = 10000;
-	string fname;
-	string dtime, tem_str;
-	const char *cdime;
-	CThostFtdcInputOrderField InputOrder;
-	memset(&InputOrder, 0, sizeof(InputOrder));
-	strncpy(InputOrder.BrokerID, LoginField.BrokerID, sizeof(InputOrder.BrokerID));//会员号
-	strncpy(InputOrder.UserID, LoginField.UserID, sizeof(InputOrder.UserID));//交易员
-	dispMenu();
-	int cmd;
-	while (1)
+	catch (...)
 	{
-		getCmd(cmd);
-		std::cout << "\n";
-		if (9 == cmd)
-		{
-			continue;
-		}
-		if (0 == cmd)
-		{
-			std::cout << "exiting......\n";
-			tradeSpi.quit();
-			//ordThread.join();
-			mdSpi.quit();
-			//tickThread.join();
-
-			std::cout << "exit......\n";
-			return 0;
-		}
-		execute(cmd, mdSpi, tradeSpi);
-		Sleep(1000);
-#ifdef _USE_MYSQL_			
-		if (strlen(mdSpi.mTradingDay) == 8)
-		{
-			//	cout << count << " " << mdSpi.mTradingDay << " " << mdSpi.mUpdateTime << " " << mdSpi.mInstrumentID << " " << \
-																	mdSpi.mLastPrice << " " << mdSpi.mVolume << " " << mdSpi.mBidPrice1 << " " << mdSpi.mBidVolume1 << " " << \
-																	mdSpi.mAskPrice1 << " " << mdSpi.mAskVolume1 << endl;
-			tem_str = mdSpi.mTradingDay;
-			dtime = tem_str.substr(0, 4) + '-' + tem_str.substr(4, 2) + '-' + tem_str.substr(6, 2) + ' ' + mdSpi.mUpdateTime;
-			cdime = dtime.c_str();
-			//			cout << dtime << " " << mdSpi.mInstrumentID << " " << cdime << endl;
-
-			sprintf(sql, "UPDATE %s SET date_time = \'%s\',lastprice = %f,volume = %d,bid1 = %f,bidvolume1 = %d,ask1 = %f,askvolume1 = %d WHERE code = \'%s\' ", \
-				tbname, cdime, mdSpi.mLastPrice, mdSpi.mVolume, mdSpi.mBidPrice1, mdSpi.mBidVolume1, mdSpi.mAskPrice1, \
-				mdSpi.mAskVolume1, mdSpi.mInstrumentID);
-			//			cout << sql << endl;
-			mysql_query(conn, sql);
-		}
-#endif
+		std::cout << "catch error!\n";
 	}
 	return 0;
 }
-
-#ifdef _USE_MYSQL_
-bool isindb(MYSQL *conn, char *tbname)
-{
-	bool status = false;
-	MYSQL_RES *result;
-	MYSQL_ROW row;
-	mysql_query(conn, "show tables");
-	result = mysql_store_result(conn);
-	int num_fields = mysql_num_fields(result);
-	int i;
-	while ((row = mysql_fetch_row(result)))
-	{
-		for (i = 0; i < num_fields; i++)
-		{
-			if (strcmp(row[i], tbname) == 0)
-				status = true;
-		}
-	}
-	return status;
-}
-#endif
 
 int ReqQrySettlementInfo(CThostFtdcTraderApi* pTradeApi)
 {
@@ -774,42 +686,45 @@ int ReqOrderInsert(CThostFtdcTraderApi* pTradeApi, long iOrderRef)
 	return ret;
 }
 
+/*
 int ReqOrderAction(CTradeSpi* pTradeSpi)
 {
-	pTradeSpi->iOrderAction += 1;
-	return 0;
+pTradeSpi->iOrderAction += 1;
+return 0;
 }
 
 int ReqQryTrade(CThostFtdcTraderApi* pTradeApi)
 {
-	printf("成交查询...\n");
-	CThostFtdcQryTradeField QryTrade;
-	memset(&QryTrade, 0, sizeof(QryTrade));
-	//strncpy_s(QryTrade.BrokerID,pBrokerID,sizeof(QryTrade.BrokerID));
-	//strncpy_s(QryTrade.InvestorID ,pInvestorID,sizeof(QryTrade.InvestorID));
-	//strncpy_s(QryTrade.InstrumentID,"IF1509",sizeof(QryTrade.InstrumentID));
-	//strncpy_s(QryTrade.ExchangeID,pExchang,sizeof(QryTrade.ExchangeID));
-	////strncpy_s(QryTrade.TradeID,pTradeDate,sizeof(QryTrade.TradeID));
-	//strncpy_s(QryTrade.TradeTimeStart,"",sizeof(QryTrade.TradeTimeStart));
-	//strncpy_s(QryTrade.TradeTimeEnd,"",sizeof(QryTrade.TradeTimeEnd));
-	return pTradeApi->ReqQryTrade(&QryTrade, GetRequsetID());
+printf("成交查询...\n");
+CThostFtdcQryTradeField QryTrade;
+memset(&QryTrade, 0, sizeof(QryTrade));
+//strncpy_s(QryTrade.BrokerID,pBrokerID,sizeof(QryTrade.BrokerID));
+//strncpy_s(QryTrade.InvestorID ,pInvestorID,sizeof(QryTrade.InvestorID));
+//strncpy_s(QryTrade.InstrumentID,"IF1509",sizeof(QryTrade.InstrumentID));
+//strncpy_s(QryTrade.ExchangeID,pExchang,sizeof(QryTrade.ExchangeID));
+////strncpy_s(QryTrade.TradeID,pTradeDate,sizeof(QryTrade.TradeID));
+//strncpy_s(QryTrade.TradeTimeStart,"",sizeof(QryTrade.TradeTimeStart));
+//strncpy_s(QryTrade.TradeTimeEnd,"",sizeof(QryTrade.TradeTimeEnd));
+return pTradeApi->ReqQryTrade(&QryTrade, GetRequsetID());
 }
+
 
 int ReqQryOrder(CThostFtdcTraderApi* pTradeApi)
 {
-	printf("委托查询...\n");
+printf("委托查询...\n");
 
-	CThostFtdcQryOrderField QryOrder;
-	memset(&QryOrder, 0, sizeof(QryOrder));
-	//跟登陆时填写的保持一致,本程序所有请求中的brokerID都是"";
-	strncpy(QryOrder.BrokerID, "", sizeof(QryOrder.BrokerID));
-	//strncpy_s(QryOrder.InstrumentID,pInstrument,sizeof(QryOrder.InstrumentID));
-	//strncpy_s(QryOrder.InvestorID,pInvestorID,sizeof(QryOrder.InvestorID));
-	//strncpy_s(QryOrder.ExchangeID ,pExchang,sizeof(QryOrder.ExchangeID));
-	//strncpy_s(QryOrder.InsertTimeStart,"",sizeof(QryOrder.InsertTimeStart));
-	//strncpy_s(QryOrder.InsertTimeEnd,"",sizeof(QryOrder.InsertTimeEnd));
-	return pTradeApi->ReqQryOrder(&QryOrder, GetRequsetID());
+CThostFtdcQryOrderField QryOrder;
+memset(&QryOrder, 0, sizeof(QryOrder));
+//跟登陆时填写的保持一致,本程序所有请求中的brokerID都是"";
+strncpy(QryOrder.BrokerID, "", sizeof(QryOrder.BrokerID));
+//strncpy_s(QryOrder.InstrumentID,pInstrument,sizeof(QryOrder.InstrumentID));
+//strncpy_s(QryOrder.InvestorID,pInvestorID,sizeof(QryOrder.InvestorID));
+//strncpy_s(QryOrder.ExchangeID ,pExchang,sizeof(QryOrder.ExchangeID));
+//strncpy_s(QryOrder.InsertTimeStart,"",sizeof(QryOrder.InsertTimeStart));
+//strncpy_s(QryOrder.InsertTimeEnd,"",sizeof(QryOrder.InsertTimeEnd));
+return pTradeApi->ReqQryOrder(&QryOrder, GetRequsetID());
 }
+*/
 
 int ReqQryInvestorPosition(CThostFtdcTraderApi* pTradeApi)
 {
@@ -894,7 +809,6 @@ int ReqQryTradeParam(CThostFtdcTraderApi* pTradeApi)
 	return pTradeApi->ReqQryBrokerTradingParams(&req, GetRequsetID());
 }
 
-
 int UnsubQuot(CThostFtdcMdApi* pMdApi)
 {
 	char * pInstrument[] = {
@@ -906,7 +820,6 @@ int UnsubQuot(CThostFtdcMdApi* pMdApi)
 	};
 	return pMdApi->UnSubscribeMarketData(pInstrument, 2);
 }
-
 
 namespace zc
 {

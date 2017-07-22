@@ -230,7 +230,7 @@ void CTradeSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAct
 	}
 	if (NULL != pInputOrderAction)
 	{
-		std::cout << "pInputOrderAction:BrokerID-" << pInputOrderAction->BrokerID
+		log << "OnRspOrderAction-pInputOrderAction:BrokerID-" << pInputOrderAction->BrokerID
 			<< ",InvestorID-" << pInputOrderAction->InvestorID
 			<< ",OrderActionRef-" << pInputOrderAction->OrderActionRef
 			<< ",OrderRef-" << pInputOrderAction->OrderRef
@@ -475,13 +475,14 @@ void CTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInves
 			<< ",PositionDate-" << pInvestorPosition->PositionDate
 			<< ",YdPosition-" << pInvestorPosition->YdPosition
 			<< ",Position-" << pInvestorPosition->Position
+			<< ",TodayPosition-" << pInvestorPosition->TodayPosition
 			<< ",LongFrozen-" << pInvestorPosition->LongFrozen
 			<< ",ShortFrozen-" << pInvestorPosition->ShortFrozen
-			<< ",LongFrozenAmount-" << pInvestorPosition->LongFrozenAmount
-			<< ",ShortFrozenAmount-" << pInvestorPosition->ShortFrozenAmount
 			<< ",OpenVolume-" << pInvestorPosition->OpenVolume
 			<< ",CloseVolume-" << pInvestorPosition->CloseVolume
 			<< ",OpenAmount-" << pInvestorPosition->OpenAmount
+			<< ",LongFrozenAmount-" << pInvestorPosition->LongFrozenAmount
+			<< ",ShortFrozenAmount-" << pInvestorPosition->ShortFrozenAmount
 			<< ",CloseAmount-" << pInvestorPosition->CloseAmount
 			<< ",PositionCost-" << pInvestorPosition->PositionCost
 			<< ",PreMargin-" << pInvestorPosition->PreMargin
@@ -504,14 +505,17 @@ void CTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInves
 			<< ",CombShortFrozen-" << pInvestorPosition->CombShortFrozen
 			<< ",CloseProfitByDate-" << pInvestorPosition->CloseProfitByDate
 			<< ",CloseProfitByTrade-" << pInvestorPosition->CloseProfitByTrade
-			<< ",TodayPosition-" << pInvestorPosition->TodayPosition
 			<< ",MarginRateByMoney-" << pInvestorPosition->MarginRateByMoney
 			<< ",MarginRateByVolume-" << pInvestorPosition->MarginRateByVolume
 			<< ",StrikeFrozen-" << pInvestorPosition->StrikeFrozen
 			<< ",StrikeFrozenAmount-" << pInvestorPosition->StrikeFrozenAmount
 			<< ",AbandonFrozen-" << pInvestorPosition->AbandonFrozen << "\n";
 		zc::QryPositionFB* qryPos = static_cast<zc::QryPositionFB*>(queryFeedBack);
-		if(pInvestorPosition->Position>0)qryPos->posList.push_back(*pInvestorPosition);
+		pInvestorPosition->TodayPosition -= (pInvestorPosition->LongFrozen + pInvestorPosition->ShortFrozen);
+		if (pInvestorPosition->TodayPosition > 0)
+		{
+			qryPos->posList.push_back(*pInvestorPosition);
+		}
 	}
 
 };
@@ -1460,7 +1464,7 @@ long CTradeSpi::SendClose(const char* instId, int lot, char dir, double prc, boo
 {
 	//zc::TRADE_OCFLAG oc
 	std::cout << "send close:" << zc::tradedir(dir) << " " << lot << " lot at price " << prc << std::endl;
-	return Send(instId, lot, dir, prc, THOST_FTDC_OF_Close, isSpot);
+	return Send(instId, lot, dir, prc, isSpot ? THOST_FTDC_OF_Close : THOST_FTDC_OF_CloseToday, isSpot);
 }
 
 bool CTradeSpi::QryInvestorId()
