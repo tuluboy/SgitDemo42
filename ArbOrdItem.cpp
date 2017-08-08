@@ -1,4 +1,7 @@
+#include "SysLog.h"
 #include "ArbOrdItem.h"
+#include <fstream>
+
 
 namespace zc
 {
@@ -6,38 +9,35 @@ namespace zc
 	{
 	}
 
-
 	ArbOrdItem::~ArbOrdItem()
 	{
 	}
 
-	void ArbOrdItem::setLeftFirst()
+	void ArbOrdItem::setLeftFirst(int thid)
 	{
-		std::cout << "left";
 		first = left;
 		left->condition = zc::LEG_CONDITION::EM_OK;
 		left->status = zc::LEG_STATUS::EM_LEG_SENDREADY;
 		second = right;
 		right->condition = zc::LEG_CONDITION::EM_WAIT;
 		right->status = zc::LEG_STATUS::EM_LEG_STATUS_NULL;
-		std::cout << " first...\n";
+		LOG("set left first...\n");
 	}
 
-	void ArbOrdItem::setRightFirst()
+	void ArbOrdItem::setRightFirst(int thid)
 	{
-		std::cout << "right";
 		second = left;
 		//left->condition = zc::LEG_CONDITION::EM_WAIT;
 		//left->status = zc::LEG_STATUS::EM_LEG_STATUS_NULL;
 		first = right;
 		//right->condition = zc::LEG_CONDITION::EM_OK;
 		//right->status = zc::LEG_STATUS::EM_LEG_SENDREADY;
-		std::cout << " first...\n"; 
+		LOG("set right first...\n"); 
 	}
 
-	void ArbOrdItem::setBothFirst()
+	void ArbOrdItem::setBothFirst(int thid)
 	{
-		std::cout << "both first...\n";
+		LOG("both first...\n");
 		first = left;
 		left->condition = zc::LEG_CONDITION::EM_OK;
 		left->status = zc::LEG_STATUS::EM_LEG_SENDREADY;

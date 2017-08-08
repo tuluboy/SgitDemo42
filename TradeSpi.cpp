@@ -1,14 +1,19 @@
+#include "SysLog.h"
+
 #include "TradeSpi.h"
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <string.h>
-#include "../s_log/log.h"
+//#include "../s_log/log.h"
 #include "GetParam.h"
 #include "Arbitrage.h"
 #include <assert.h>
 #include <algorithm>
 #include "common.h"
-extern char * pSubInstrumnet[];
+#include <processthreadsapi.h>
+
+extern char * pSubInstrumnet[7];
 extern int GetRequsetID();
 CTradeSpi::CTradeSpi(CThostFtdcTraderApi* pReqApi, CThostFtdcReqUserLoginField* pLoginField)
 {
@@ -27,15 +32,14 @@ CTradeSpi::~CTradeSpi(void)
 {
 }
 
-
-
 void CTradeSpi::OnFrontConnected(){
+	int thid = GetCurrentThreadId();
 	std::cout << "traderspi 连接成功...\n";
+	LOG("traderspi 连接成功...\n");
 	std::cout << "traderspi 登陆...\n";
+	LOG("traderspi 登陆...\n");
 	m_pReqApi->ReqUserLogin(&m_loginField, 0);
-	dqk_log::CLogApi log;
-	log << "登录:" << m_loginField.UserID << "\n";
-	std::cout << "登录:" << m_loginField.UserID << "\n";
+	LOG("登录:" << m_loginField.UserID << "\n");
 };
 
 ///当客户端与交易后台通信连接断开时，该方法被调用。当发生这个情况后，API会自动重新连接，客户端可不做处理。
@@ -46,9 +50,8 @@ void CTradeSpi::OnFrontConnected(){
 ///        0x2002 发送心跳失败
 ///        0x2003 收到错误报文
 void CTradeSpi::OnFrontDisconnected(int nReason){
-	dqk_log::CLogApi LOG;
-	LOG << "OnFrontDisconnected" << "\n";
-	std::cout << "CTradeSpi::OnFrontDisconnected" << "\n";
+	int thid = GetCurrentThreadId();
+	LOG( "OnFrontDisconnected" << "\n"<< "CTradeSpi::OnFrontDisconnected" << "\n");
 	bConnected = false;
 };
 
@@ -61,18 +64,17 @@ void CTradeSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthentica
 
 
 ///登录请求响应
-void CTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	bConnected = false;
-	dqk_log::CLogApi LOG;
-	LOG << "登录请求响应-OnRspUserLogin-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
-	std::cout << "登录请求响应-OnRspUserLogin-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+	LOG("登录请求响应-OnRspUserLogin-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
 		if (0 == pRspInfo->ErrorID)
 		{
-			printf("交易登录成功.\n");
 			OrderRef = atol(pRspUserLogin->MaxOrderRef);
-			std::cout << "MaxOrderRef returned as value: " << OrderRef << std::endl;
+			LOG("交易登录成功 --" << "MaxOrderRef returned as value: " << OrderRef << "\n" );
 			bConnected = true;
 			if (false == bFirstLogin)
 			{
@@ -83,18 +85,17 @@ void CTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThos
 		}
 		else
 		{
-			std::cout << "交易登录失败！\n";
-			printf("CTradeSpi::pRspInfo msg%d - %s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
+			LOG("交易登录失败！\n");
+			LOG("CTradeSpi::pRspInfo msg: " << pRspInfo->ErrorID << "  " << pRspInfo->ErrorMsg );
 		}
-		LOG << "CTradeSpi::OnRspUserLogin:errcode-" << pRspInfo->ErrorID << ",msg-" << pRspInfo->ErrorMsg << "\n";
-		std::cout << "CTradeSpi::OnRspUserLogin:errcode-" << pRspInfo->ErrorID << ",msg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("CTradeSpi::OnRspUserLogin:errcode-" << pRspInfo->ErrorID << ",msg-" << pRspInfo->ErrorMsg << "\n" );
 	}
 
 	if (NULL != pRspUserLogin)
 	{
 		//strncpy_s(CSystemData::tradingDay,pRspUserLogin->TradingDay,sizeof(CSystemData::tradingDay));
-		//dqk_log::CLogApi LOG;
-		LOG << "pRspUserLogin:TradingDay-" << pRspUserLogin->TradingDay
+		//dqk_log::CLogApi g_Log << thid;
+		LOG("pRspUserLogin:TradingDay-" << pRspUserLogin->TradingDay
 			<< ",LoginTime-" << pRspUserLogin->LoginTime
 			<< ",BrokerID-" << pRspUserLogin->BrokerID
 			<< ",UserID-" << pRspUserLogin->UserID
@@ -106,43 +107,44 @@ void CTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThos
 			<< ",DCETime-" << pRspUserLogin->DCETime
 			<< ",CZCETime-" << pRspUserLogin->CZCETime
 			<< ",FFEXTime-" << pRspUserLogin->FFEXTime
-			<< ",INETime-" << pRspUserLogin->INETime << "\n";
+			<< ",INETime-" << pRspUserLogin->INETime << "\n" );
 	}
 };
 
 ///登出请求响应
-void CTradeSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CTradeSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	bConnected = false;
-	printf("登出请求响应\n");
-	dqk_log::CLogApi LOG;
-	LOG << "登出请求响应-OnRspUserLogout" << ",bIsLast-" << bIsLast << "\n";
+	LOG("登出请求响应-OnRspUserLogout" << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
-		LOG << "pRspInfo:errcode-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
-		printf("登出-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
+		LOG("pRspInfo:errcode-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n" );
 	}
 	if (NULL != pUserLogout)
 	{
-		LOG << "pUserLogout:BrokerID-" << pUserLogout->BrokerID << ",UserID-" << pUserLogout->UserID << "\n";
+		LOG("pUserLogout:BrokerID-" << pUserLogout->BrokerID << ",UserID-" << pUserLogout->UserID << "\n" );
 	}
 };
 
 ///用户口令更新请求响应
-void CTradeSpi::OnRspUserPasswordUpdate(CThostFtdcUserPasswordUpdateField *pUserPasswordUpdate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("用户口令更新请求响应-%d\n", nRequestID);
-	dqk_log::CLogApi LOG;
-	std::cout << "用户口令更新请求响应-OnRspUserPasswordUpdate" << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspUserPasswordUpdate(CThostFtdcUserPasswordUpdateField *pUserPasswordUpdate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+
+	//dqk_log::CLogApi g_Log << thid;
+	LOG("用户口令更新请求响应-" << nRequestID << "\n" << "用户口令更新请求响应 - OnRspUserPasswordUpdate bIsLast - " << bIsLast << "\n" );
 	if (NULL != pRspInfo)
 	{
-		std::cout << "MSG:errcode-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("MSG:errcode-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n" );
 	}
 	if (NULL != pUserPasswordUpdate)
 	{
-		std::cout << "pUserPasswordUpdate:BrokerID-" << pUserPasswordUpdate->BrokerID
+		LOG("pUserPasswordUpdate:BrokerID-" << pUserPasswordUpdate->BrokerID
 			<< ",UserID-" << pUserPasswordUpdate->UserID
 			<< ",OldPassword-" << pUserPasswordUpdate->OldPassword
 			<< ",NewPassword-" << pUserPasswordUpdate->NewPassword
-			<< ",NewPassword-" << pUserPasswordUpdate->NewPassword << "\n";
+			<< ",NewPassword-" << pUserPasswordUpdate->NewPassword << "\n" );
 	}
 };
 
@@ -153,9 +155,11 @@ void CTradeSpi::OnRspTradingAccountPasswordUpdate(CThostFtdcTradingAccountPasswo
 
 
 ///报单录入请求响应
-void CTradeSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CTradeSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	//printf("OnRspOrderInsert报单录入请求响应-%d.\n", nRequestID);
-	dqk_log::CLogApi LOG;
+	//dqk_log::CLogApi g_Log << thid;
 	//std::cout << "报单录入请求响应-OnRspOrderInsert-" << nRequestID << ",bIsLast-" << bIsLast << ",bIsLast-" << bIsLast << "\n";
 
 	if (NULL != pRspInfo)
@@ -175,36 +179,38 @@ void CTradeSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostF
 			strcpy(inputOrderAction.OrderSysID, pInputOrder->OrderSysID);
 			strcpy(inputOrderAction.ExchangeID, pInputOrder->ExchangeID);
 			if (0 != m_pReqApi->ReqOrderAction(&inputOrderAction, 0))
-				std::cout << "撤单发送失败" << "\n";
+				LOG("撤单发送失败" << "\n" );
 
 		}
 	}
 	if (NULL != pInputOrder)
 	{
 
-		LOG << "OnRspOrderInsert:BrokerID-" << pInputOrder->BrokerID
-			<< ",InvestorID-" << pInputOrder->InvestorID
+		LOG("OnRspOrderInsert:BrokerID-" << pInputOrder->BrokerID
+			<<",ExchangeID-"<<pInputOrder->ExchangeID
+			//<< ",InvestorID-" << pInputOrder->InvestorID
 			<< ",InstrumentID-" << pInputOrder->InstrumentID
 			<< ",OrderRef-" << pInputOrder->OrderRef
-			<< ",UserID-" << pInputOrder->UserID
-			<< ",OrderPriceType-" << pInputOrder->OrderPriceType
+			//<< ",UserID-" << pInputOrder->UserID
+			//<< ",OrderPriceType-" << pInputOrder->OrderPriceType
 			<< ",Direction-" << pInputOrder->Direction
 			<< ",CombOffsetFlag-" << pInputOrder->CombOffsetFlag
-			<< ",CombHedgeFlag-" << pInputOrder->CombHedgeFlag
+			//<< ",CombHedgeFlag-" << pInputOrder->CombHedgeFlag
 			<< ",LimitPrice-" << pInputOrder->LimitPrice
 			<< ",VolumeTotalOriginal-" << pInputOrder->VolumeTotalOriginal
-			<< ",TimeCondition-" << pInputOrder->TimeCondition
-			<< ",GTDDate-" << pInputOrder->GTDDate
-			<< ",VolumeCondition-" << pInputOrder->VolumeCondition
-			<< ",MinVolume-" << pInputOrder->MinVolume
-			<< ",ContingentCondition-" << pInputOrder->ContingentCondition
-			<< ",StopPrice-" << pInputOrder->StopPrice
-			<< ",ForceCloseReason-" << pInputOrder->ForceCloseReason
-			<< ",IsAutoSuspend-" << pInputOrder->IsAutoSuspend
-			<< ",BusinessUnit-" << pInputOrder->BusinessUnit
-			<< ",RequestID-" << pInputOrder->RequestID
-			<< ",UserForceClose-" << pInputOrder->UserForceClose
-			<< ",IsSwapOrder-" << pInputOrder->IsSwapOrder << "\n";
+			//<< ",TimeCondition-" << pInputOrder->TimeCondition
+			//<< ",GTDDate-" << pInputOrder->GTDDate
+			//<< ",VolumeCondition-" << pInputOrder->VolumeCondition
+			//<< ",MinVolume-" << pInputOrder->MinVolume
+			//<< ",ContingentCondition-" << pInputOrder->ContingentCondition
+			//<< ",StopPrice-" << pInputOrder->StopPrice
+			//<< ",ForceCloseReason-" << pInputOrder->ForceCloseReason
+			//<< ",IsAutoSuspend-" << pInputOrder->IsAutoSuspend
+			//<< ",BusinessUnit-" << pInputOrder->BusinessUnit
+			//<< ",RequestID-" << pInputOrder->RequestID
+			//<< ",UserForceClose-" << pInputOrder->UserForceClose
+			//<< ",IsSwapOrder-" << pInputOrder->IsSwapOrder
+			<< "\n" );
 	}
 
 };
@@ -218,96 +224,96 @@ void CTradeSpi::OnRspParkedOrderAction(CThostFtdcParkedOrderActionField *pParked
 ///报单操作请求响应
 void CTradeSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	dqk_log::CLogApi log;
-	std::cout << "报单操作请求响应-OnRspOrderAction-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
-	printf("OnRspOrderAction-%d", nRequestID);
+	int thid = GetCurrentThreadId();
+	//dqk_log::CLogApi g_Log << thid;
+	LOG("报单操作请求响应-OnRspOrderAction-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 
 	if (NULL != pRspInfo)
 	{
-		printf("报单操作请求响应-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		std::cout << "pRspInfo:msgCode-" << pRspInfo->ErrorID << ",msg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("报单操作请求响应 pRspInfo:msgCode-" << pRspInfo->ErrorID << ",msg-" << pRspInfo->ErrorMsg << "\n");
 
 	}
 	if (NULL != pInputOrderAction)
 	{
-		log << "OnRspOrderAction-pInputOrderAction:BrokerID-" << pInputOrderAction->BrokerID
-			<< ",InvestorID-" << pInputOrderAction->InvestorID
-			<< ",OrderActionRef-" << pInputOrderAction->OrderActionRef
+		LOG("OnRspOrderAction-pInputOrderAction:BrokerID-" << pInputOrderAction->BrokerID
+			//<< ",InvestorID-" << pInputOrderAction->InvestorID
+			//<< ",OrderActionRef-" << pInputOrderAction->OrderActionRef
 			<< ",OrderRef-" << pInputOrderAction->OrderRef
-			<< ",RequestID-" << pInputOrderAction->RequestID
-			<< ",FrontID-" << pInputOrderAction->FrontID
-			<< ",SessionID-" << pInputOrderAction->SessionID
+			//<< ",RequestID-" << pInputOrderAction->RequestID
+			//<< ",FrontID-" << pInputOrderAction->FrontID
+			//<< ",SessionID-" << pInputOrderAction->SessionID
 			<< ",ExchangeID-" << pInputOrderAction->ExchangeID
 			<< ",OrderSysID-" << pInputOrderAction->OrderSysID
 			<< ",ActionFlag-" << pInputOrderAction->ActionFlag
 			<< ",LimitPrice-" << pInputOrderAction->LimitPrice
 			<< ",VolumeChange-" << pInputOrderAction->VolumeChange
-			<< ",UserID-" << pInputOrderAction->UserID
-			<< ",InstrumentID-" << pInputOrderAction->InstrumentID << "\n";
+			//<< ",UserID-" << pInputOrderAction->UserID
+			<< ",InstrumentID-" << pInputOrderAction->InstrumentID << "\n" );
 	}
 	zc::PlannedOrderItem* po = getLocalOrder(pInputOrderAction->OrderRef);
 	if (po)
 	{
 		if (THOST_FTDC_AF_Delete == pInputOrderAction->ActionFlag && pInputOrderAction->VolumeChange > 0)
 		{
-			std::cout << "撤单被接受！"<<"已撤数量"<<pInputOrderAction->VolumeChange<<"lot！\n";
+			LOG("撤单被接受！" << "已撤数量" << pInputOrderAction->VolumeChange << "lot！\n" );
 			po->clot += pInputOrderAction->VolumeChange;
 			if (po->clot == po->lot) // 全撤
 			{
 				po->status = zc::LEG_STATUS::EM_LEG_CANCELED;
 			}
-			else
+			else if (po->clot < po->lot)
 			{
 				po->status = zc::LEG_STATUS::EM_LEG_ParCANCELED;
+			}
+			else
+			{
+				LOG("撤单数错误！已撤数量重复计算。。。\n");
 			}
 		}
 	}
 	else
 	{
-		log << "撤单：没有找到本地对应订单\n";
+		LOG("撤单：没有找到本地对应订单\n" );
 	}
 };
 
 ///查询最大报单数量响应
-void CTradeSpi::OnRspQueryMaxOrderVolume(CThostFtdcQueryMaxOrderVolumeField *pQueryMaxOrderVolume, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	dqk_log::CLogApi log;
-	log << "查询最大报单数量响应-OnRspOrderAction-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
-	printf("查询最大报单数量响应-%d", nRequestID);
+void CTradeSpi::OnRspQueryMaxOrderVolume(CThostFtdcQueryMaxOrderVolumeField *pQueryMaxOrderVolume, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	LOG("查询最大报单数量响应-OnRspOrderAction-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 
 	if (NULL != pRspInfo)
 	{
-		printf("查询最大报单数量响应-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:msgCode-" << pRspInfo->ErrorID << ",msg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("查询最大报单数量响应 pRspInfo:msgCode-" << pRspInfo->ErrorID << ",msg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pQueryMaxOrderVolume)
 	{
-		log << "pQueryMaxOrderVolume:BrokerID-" << pQueryMaxOrderVolume->BrokerID
+		LOG("pQueryMaxOrderVolume:BrokerID-" << pQueryMaxOrderVolume->BrokerID
 			<< ",InvestorID-" << pQueryMaxOrderVolume->InvestorID
 			<< ",InstrumentID-" << pQueryMaxOrderVolume->InstrumentID
 			<< ",Direction-" << pQueryMaxOrderVolume->Direction
 			<< ",OffsetFlag-" << pQueryMaxOrderVolume->OffsetFlag
 			<< ",HedgeFlag-" << pQueryMaxOrderVolume->HedgeFlag
-			<< ",MaxVolume-" << pQueryMaxOrderVolume->MaxVolume << "\n";
+			<< ",MaxVolume-" << pQueryMaxOrderVolume->MaxVolume << "\n");
 	}
 };
 
 ///投资者结算结果确认响应
-void CTradeSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-
-	printf("结算结果确认!\n");
-	dqk_log::CLogApi log;
-	log << "投资者结算结果确认响应-OnRspSettlementInfoConfirm:结算结果确认." << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	LOG("投资者结算结果确认响应-OnRspSettlementInfoConfirm:结算结果确认." << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
-		printf("结算结果确认：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("结算结果确认 pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pSettlementInfoConfirm)
 	{
-		log << "CThostFtdcSettlementInfoConfirmField:BrokerID-" << pSettlementInfoConfirm->BrokerID
+		LOG("CThostFtdcSettlementInfoConfirmField:BrokerID-" << pSettlementInfoConfirm->BrokerID
 			<< ",ConfirmDate-" << pSettlementInfoConfirm->ConfirmDate
 			<< ",ConfirmTime-" << pSettlementInfoConfirm->ConfirmTime
-			<< ",InvestorID-" << pSettlementInfoConfirm->InvestorID << "\n";
+			<< ",InvestorID-" << pSettlementInfoConfirm->InvestorID << "\n");
 	}
 };
 
@@ -339,18 +345,17 @@ void CTradeSpi::OnRspBatchOrderAction(CThostFtdcInputBatchOrderActionField *pInp
 void CTradeSpi::OnRspCombActionInsert(CThostFtdcInputCombActionField *pInputCombAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {};
 
 ///请求查询报单响应
-void CTradeSpi::OnRspQryOrder(CThostFtdcOrderField *pOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("请求查询报单响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询报单响应-OnRspQryOrder-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspQryOrder(CThostFtdcOrderField *pOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	LOG("请求查询报单响应-OnRspQryOrder-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
-		printf("请求查询报单响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pOrder)
 	{
-		log << "OnRspQryOrder:BrokerID-" << pOrder->BrokerID
+		LOG("OnRspQryOrder:BrokerID-" << pOrder->BrokerID
 			<< ",InvestorID-" << pOrder->InvestorID
 			<< ",InstrumentID-" << pOrder->InstrumentID
 			<< ",OrderRef-" << pOrder->OrderRef
@@ -406,23 +411,22 @@ void CTradeSpi::OnRspQryOrder(CThostFtdcOrderField *pOrder, CThostFtdcRspInfoFie
 			<< ",BrokerOrderSeq-" << pOrder->BrokerOrderSeq
 			<< ",RelativeOrderSysID-" << pOrder->RelativeOrderSysID
 			<< ",ZCETotalTradedVolume-" << pOrder->ZCETotalTradedVolume
-			<< ",IsSwapOrder-" << pOrder->IsSwapOrder << "\n";
+			<< ",IsSwapOrder-" << pOrder->IsSwapOrder << "\n" );
 	}
 };
 
 ///请求查询成交响应
-void CTradeSpi::OnRspQryTrade(CThostFtdcTradeField *pTrade, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("请求查询成交响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询成交响应-OnRspQryTrade-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspQryTrade(CThostFtdcTradeField *pTrade, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	LOG("请求查询成交响应-OnRspQryTrade-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
-		printf("请求查询成交响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("请求查询成交响应: pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pTrade)
 	{
-		log << "pTrade:BrokerID-" << pTrade->BrokerID
+		LOG("pTrade:BrokerID-" << pTrade->BrokerID
 			<< ",InvestorID-" << pTrade->InvestorID
 			<< ",InstrumentID-" << pTrade->InstrumentID
 			<< ",OrderRef-" << pTrade->OrderRef
@@ -451,23 +455,22 @@ void CTradeSpi::OnRspQryTrade(CThostFtdcTradeField *pTrade, CThostFtdcRspInfoFie
 			<< ",TradingDay-" << pTrade->TradingDay
 			<< ",SettlementID-" << pTrade->SettlementID
 			<< ",BrokerOrderSeq-" << pTrade->BrokerOrderSeq
-			<< ",TradeSource-" << pTrade->TradeSource << "\n";
+			<< ",TradeSource-" << pTrade->TradeSource << "\n" );
 	}
 };
 
 ///请求查询投资者持仓响应
-void CTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("请求查询投资者持仓响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询投资者持仓响应-OnRspQryInvestorPosition-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	LOG("请求查询投资者持仓响应-OnRspQryInvestorPosition-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
-		printf("请求查询投资者持仓响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pInvestorPosition)
 	{
-		log << "pInvestorPosition:InstrumentID-" << pInvestorPosition->InstrumentID
+		LOG("pInvestorPosition:InstrumentID-" << pInvestorPosition->InstrumentID
 			<< ",BrokerID-" << pInvestorPosition->BrokerID
 			<< ",InvestorID-" << pInvestorPosition->InvestorID
 			<< ",PosiDirection-" << pInvestorPosition->PosiDirection
@@ -509,7 +512,7 @@ void CTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInves
 			<< ",MarginRateByVolume-" << pInvestorPosition->MarginRateByVolume
 			<< ",StrikeFrozen-" << pInvestorPosition->StrikeFrozen
 			<< ",StrikeFrozenAmount-" << pInvestorPosition->StrikeFrozenAmount
-			<< ",AbandonFrozen-" << pInvestorPosition->AbandonFrozen << "\n";
+			<< ",AbandonFrozen-" << pInvestorPosition->AbandonFrozen << "\n" );
 		zc::QryPositionFB* qryPos = static_cast<zc::QryPositionFB*>(queryFeedBack);
 		pInvestorPosition->TodayPosition -= (pInvestorPosition->LongFrozen + pInvestorPosition->ShortFrozen);
 		if (pInvestorPosition->TodayPosition > 0)
@@ -522,24 +525,24 @@ void CTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInves
 
 bool bAccount = false;
 ///请求查询资金账户响应
-void CTradeSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	//return;
+void CTradeSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	if (!bAccount)
 		bAccount = true;
 	else
 		return;
 	//printf("请求查询资金账户响应-%d\n",nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询资金账户响应-OnRspQryTradingAccount-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
-	std::cout << "请求查询资金账户响应-OnRspQryTradingAccount-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+	//dqk_log::CLogApi g_Log << thid;
+	LOG("请求查询资金账户响应-OnRspQryTradingAccount-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
+	LOG("请求查询资金账户响应-OnRspQryTradingAccount-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
-		printf("请求查询资金账户响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("请求查询资金账户响应 : pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pTradingAccount)
 	{
-		log << "pTradingAccount:BrokerID-" << pTradingAccount->BrokerID
+		LOG("pTradingAccount:BrokerID-" << pTradingAccount->BrokerID
 			<< ",AccountID-" << pTradingAccount->AccountID
 			<< ",PreMortgage-" << pTradingAccount->PreMortgage
 			<< ",PreCredit-" << pTradingAccount->PreCredit
@@ -568,24 +571,24 @@ void CTradeSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAc
 			<< ",Mortgage-" << pTradingAccount->Mortgage
 			<< ",ExchangeMargin-" << pTradingAccount->ExchangeMargin
 			<< ",DeliveryMargin-" << pTradingAccount->DeliveryMargin
-			<< ",ExchangeDeliveryMargin-" << pTradingAccount->ExchangeDeliveryMargin << "\n";
+			<< ",ExchangeDeliveryMargin-" << pTradingAccount->ExchangeDeliveryMargin << "\n" );
 
 	}
 };
 
 ///请求查询投资者响应
-void CTradeSpi::OnRspQryInvestor(CThostFtdcInvestorField *pInvestor, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("请求查询投资者响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	std::cout << "请求查询投资者响应-OnRspQryInvestor-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspQryInvestor(CThostFtdcInvestorField *pInvestor, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	//dqk_log::CLogApi g_Log << thid;
+	LOG("请求查询投资者响应-OnRspQryInvestor-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
-		printf("请求查询投资者响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		std::cout << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("请求查询投资者响应 : pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n" );
 	}
 	if (NULL != pInvestor)
 	{
-		std::cout << "pInvestor:InvestorID-" << pInvestor->InvestorID
+		LOG("pInvestor:InvestorID-" << pInvestor->InvestorID
 			<< ",BrokerID-" << pInvestor->BrokerID
 			<< ",InvestorGroupID-" << pInvestor->InvestorGroupID
 			<< ",InvestorName-" << pInvestor->InvestorName
@@ -596,7 +599,7 @@ void CTradeSpi::OnRspQryInvestor(CThostFtdcInvestorField *pInvestor, CThostFtdcR
 			<< ",Address-" << pInvestor->Address
 			<< ",OpenDate-" << pInvestor->OpenDate
 			<< ",Mobile-" << pInvestor->Mobile
-			<< ",CommModelID-" << pInvestor->CommModelID << "\n";
+			<< ",CommModelID-" << pInvestor->CommModelID << "\n" );
 		//CThostFtdcQryInvestorField* fb = static_cast<CThostFtdcQryInvestorField*>(queryFeedBack);
 		//memcpy(fb, pInvestor, sizeof(CThostFtdcInvestorField));
 		//if (bIsLast)ResetQryFB();
@@ -606,23 +609,23 @@ void CTradeSpi::OnRspQryInvestor(CThostFtdcInvestorField *pInvestor, CThostFtdcR
 
 
 ///请求查询交易编码响应
-void CTradeSpi::OnRspQryTradingCode(CThostFtdcTradingCodeField *pTradingCode, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("请求查询交易编码响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询交易编码响应-OnRspQryTradingCode-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspQryTradingCode(CThostFtdcTradingCodeField *pTradingCode, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	//dqk_log::CLogApi g_Log << thid;
+	LOG("请求查询交易编码响应-OnRspQryTradingCode-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
-		printf("请求查询交易编码响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("请求查询交易编码响应 : pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pTradingCode)
 	{
-		log << "pTradingCode:InvestorID-" << pTradingCode->InvestorID
+		LOG("pTradingCode:InvestorID-" << pTradingCode->InvestorID
 			<< ",BrokerID-" << pTradingCode->BrokerID
 			<< ",ExchangeID-" << pTradingCode->ExchangeID
 			<< ",ClientID-" << pTradingCode->ClientID
 			<< ",IsActive-" << pTradingCode->IsActive
-			<< ",ClientIDType-" << pTradingCode->ClientIDType << "\n";
+			<< ",ClientIDType-" << pTradingCode->ClientIDType << "\n");
 
 		CGetParam param;
 		param.WriteTradecode(pTradingCode);
@@ -631,18 +634,19 @@ void CTradeSpi::OnRspQryTradingCode(CThostFtdcTradingCodeField *pTradingCode, CT
 };
 
 ///请求查询合约保证金率响应
-void CTradeSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField *pInstrumentMarginRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("请求查询合约保证金率响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询合约保证金率响应-OnRspQryInstrumentMarginRate-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField *pInstrumentMarginRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	//dqk_log::CLogApi g_Log << thid;
+	LOG("请求查询合约保证金率响应-OnRspQryInstrumentMarginRate-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
 		printf("请求查询合约保证金率响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pInstrumentMarginRate)
 	{
-		log << "pInstrumentMarginRate:InstrumentID-" << pInstrumentMarginRate->InstrumentID
+		LOG("pInstrumentMarginRate:InstrumentID-" << pInstrumentMarginRate->InstrumentID
 			<< ",InvestorRange-" << pInstrumentMarginRate->InvestorRange
 			<< ",BrokerID-" << pInstrumentMarginRate->BrokerID
 			<< ",InvestorID-" << pInstrumentMarginRate->InvestorID
@@ -652,23 +656,25 @@ void CTradeSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField
 			<< ",ShortMarginRatioByMoney-" << pInstrumentMarginRate->ShortMarginRatioByMoney
 			<< ",ShortMarginRatioByVolume-" << pInstrumentMarginRate->ShortMarginRatioByVolume
 			<< ",IsRelative-" << pInstrumentMarginRate->IsRelative
-			<< "\n";
+			<< "\n");
 	}
 };
 
 ///请求查询合约手续费率响应
-void CTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pInstrumentCommissionRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pInstrumentCommissionRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	printf("请求查询合约手续费率响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询合约手续费率响应-OnRspQryInstrumentCommissionRate-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+
+	LOG("请求查询合约手续费率响应-OnRspQryInstrumentCommissionRate-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
 		printf("请求查询合约手续费率响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pInstrumentCommissionRate)
 	{
-		log << "pInstrumentCommissionRate:InstrumentID-" << pInstrumentCommissionRate->InstrumentID
+		LOG("pInstrumentCommissionRate:InstrumentID-" << pInstrumentCommissionRate->InstrumentID
 			<< ",InvestorRange-" << pInstrumentCommissionRate->InvestorRange
 			<< ",BrokerID-" << pInstrumentCommissionRate->BrokerID
 			<< ",InvestorID-" << pInstrumentCommissionRate->InvestorID
@@ -678,25 +684,24 @@ void CTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionR
 			<< ",CloseRatioByVolume-" << pInstrumentCommissionRate->CloseRatioByVolume
 			<< ",CloseTodayRatioByMoney-" << pInstrumentCommissionRate->CloseTodayRatioByMoney
 			<< ",CloseTodayRatioByVolume-" << pInstrumentCommissionRate->CloseTodayRatioByVolume
-			<< "\n";
+			<< "\n");
 	}
 };
 
 ///请求查询交易所响应
-void CTradeSpi::OnRspQryExchange(CThostFtdcExchangeField *pExchange, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("请求查询交易所响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询交易所响应-OnRspQryExchange-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspQryExchange(CThostFtdcExchangeField *pExchange, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	LOG("请求查询交易所响应-OnRspQryExchange-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
-		printf("请求查询交易所响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("请求查询交易所响应 : pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pExchange)
 	{
-		log << "pExchange:ExchangeID-" << pExchange->ExchangeID
+		LOG("pExchange:ExchangeID-" << pExchange->ExchangeID
 			<< ",ExchangeName-" << pExchange->ExchangeName
-			<< ",ExchangeProperty-" << pExchange->ExchangeProperty << "\n";
+			<< ",ExchangeProperty-" << pExchange->ExchangeProperty << "\n");
 	}
 
 };
@@ -705,22 +710,23 @@ void CTradeSpi::OnRspQryExchange(CThostFtdcExchangeField *pExchange, CThostFtdcR
 void CTradeSpi::OnRspQryProduct(CThostFtdcProductField *pProduct, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {};
 
 ///请求查询合约响应
-void CTradeSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("请求查询合约响应-%d\n", nRequestID);
+void CTradeSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	// dqk_log::CLogApi log;
 	//std::cout << "请求查询合约响应-OnRspQryInstrument-" << nRequestID << ",bIsLast-" << bIsLast << ",bIsLast-" << bIsLast << "\n";
 	if (NULL != pRspInfo)
 	{
-		printf("请求查询合约响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
 		//log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
-		std::cout << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("请求查询合约响应 : pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n" );
 	}
 	if (NULL != pInstrument)
 	{
 		//std::cout << pInstrument->InstrumentID << " ";
 		//return;
 		bool found = false;
-		for (int i = 0; i < 5; i++)
+		int ns = sizeof(pSubInstrumnet) / sizeof(char*);
+		for (int i = 0; i < ns; i++)
 		{
 			if (0 == strcmp(pInstrument->InstrumentID, pSubInstrumnet[i]))
 			{
@@ -766,23 +772,23 @@ void CTradeSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThos
 void CTradeSpi::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {};
 
 ///请求查询投资者结算结果响应
-void CTradeSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pSettlementInfo, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-	printf("请求查询投资者结算结果响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询投资者结算结果响应-OnRspQrySettlementInfo-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+void CTradeSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pSettlementInfo, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
+	LOG("请求查询投资者结算结果响应-OnRspQrySettlementInfo-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
 		printf("请求查询投资者结算结果响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pSettlementInfo)
 	{
-		log << "pSettlementInfo:TradingDay-" << pSettlementInfo->TradingDay
+		LOG("pSettlementInfo:TradingDay-" << pSettlementInfo->TradingDay
 			<< ",SettlementID-" << pSettlementInfo->SettlementID
 			<< ",BrokerID-" << pSettlementInfo->BrokerID
 			<< ",InvestorID-" << pSettlementInfo->InvestorID
 			<< ",SequenceNo-" << pSettlementInfo->SequenceNo
-			<< ",Content-" << pSettlementInfo->Content << "\n";
+			<< ",Content-" << pSettlementInfo->Content << "\n");
 	}
 };
 
@@ -790,18 +796,20 @@ void CTradeSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pSettlemen
 void CTradeSpi::OnRspQryTransferBank(CThostFtdcTransferBankField *pTransferBank, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {};
 
 ///请求查询投资者持仓明细响应
-void CTradeSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetailField *pInvestorPositionDetail, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CTradeSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetailField *pInvestorPositionDetail, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	printf("请求查询转帐银行响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询投资者持仓明细响应-OnRspQrySettlementInfo-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+	//dqk_log::CLogApi g_Log << thid;
+	LOG("请求查询投资者持仓明细响应-OnRspQrySettlementInfo-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
 		printf("请求查询转帐银行响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pInvestorPositionDetail)
 	{
-		log << "pInvestorPositionDetail:InstrumentID-" << pInvestorPositionDetail->InstrumentID
+		LOG("pInvestorPositionDetail:InstrumentID-" << pInvestorPositionDetail->InstrumentID
 			<< ",BrokerID-" << pInvestorPositionDetail->BrokerID
 			<< ",InvestorID-" << pInvestorPositionDetail->InvestorID
 			<< ",HedgeFlag-" << pInvestorPositionDetail->HedgeFlag
@@ -827,45 +835,49 @@ void CTradeSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetailF
 			<< ",SettlementPrice-" << pInvestorPositionDetail->SettlementPrice
 			<< ",CloseVolume-" << pInvestorPositionDetail->CloseVolume
 			<< ",CloseAmount-" << pInvestorPositionDetail->CloseAmount
-			<< "\n";
+			<< "\n");
 	}
 };
 
 ///请求查询客户通知响应
-void CTradeSpi::OnRspQryNotice(CThostFtdcNoticeField *pNotice, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CTradeSpi::OnRspQryNotice(CThostFtdcNoticeField *pNotice, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	printf("请求查询客户通知响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询客户通知响应-OnRspQryNotice-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+	//dqk_log::CLogApi g_Log << thid;
+	LOG("请求查询客户通知响应-OnRspQryNotice-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
 		printf("请求查询客户通知响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pNotice)
 	{
-		log << "pNotice:BrokerID-" << pNotice->BrokerID
+		LOG("pNotice:BrokerID-" << pNotice->BrokerID
 			<< "pNotice-" << pNotice->Content
 			<< "pNotice-" << pNotice->SequenceLabel
-			<< "\n";
+			<< "\n");
 	}
 };
 
 ///请求查询结算信息确认响应
-void CTradeSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CTradeSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	printf("请求查询结算信息确认响应-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "请求查询结算信息确认响应-OnRspQrySettlementInfoConfirm-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+	//dqk_log::CLogApi g_Log << thid;
+	LOG("请求查询结算信息确认响应-OnRspQrySettlementInfoConfirm-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspInfo)
 	{
 		printf("请求查询结算信息确认响应：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pSettlementInfoConfirm)
 	{
-		log << "pSettlementInfoConfirm:BrokerID-" << pSettlementInfoConfirm->BrokerID
+		LOG("pSettlementInfoConfirm:BrokerID-" << pSettlementInfoConfirm->BrokerID
 			<< ",InvestorID-" << pSettlementInfoConfirm->InvestorID
 			<< ",ConfirmDate-" << pSettlementInfoConfirm->ConfirmDate
-			<< ",ConfirmTime-" << pSettlementInfoConfirm->ConfirmTime << "\n";
+			<< ",ConfirmTime-" << pSettlementInfoConfirm->ConfirmTime << "\n");
 	}
 };
 
@@ -927,82 +939,85 @@ void CTradeSpi::OnRspQryTransferSerial(CThostFtdcTransferSerialField *pTransferS
 void CTradeSpi::OnRspQryAccountregister(CThostFtdcAccountregisterField *pAccountregister, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {};
 
 ///错误应答
-void CTradeSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CTradeSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	printf("错误应答-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "错误应答-OnRspError-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+	LOG("错误应答-OnRspError-" << nRequestID << ",bIsLast-" << bIsLast << "\n" );
 	if (NULL != pRspInfo)
 	{
 		printf("错误应答：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n" );
 	}
 };
 
 ///报单通知
-void CTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder) {
-	printf("OnRtnOrder %s\n", pOrder->OrderRef);
-	dqk_log::CLogApi log;
-	log << "报单通知-OnRtnOrder" << "\n";
+void CTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
+{
+	int thid = GetCurrentThreadId();
+	LOG("报单通知-OnRtnOrder" << "\n");
 	if (NULL != pOrder)
 	{
-		log << "pOrder:BrokerID-" << pOrder->BrokerID
-			<< ",InvestorID-" << pOrder->InvestorID
+		if (THOST_FTDC_OST_Canceled == pOrder->OrderStatus)return;
+
+		LOG("pOrder:BrokerID-" << pOrder->BrokerID
+			//<< ",InvestorID-" << pOrder->InvestorID
 			<< ",InstrumentID-" << pOrder->InstrumentID
 			<< ",OrderRef-" << pOrder->OrderRef
-			<< ",UserID-" << pOrder->UserID
-			<< ",OrderPriceType-" << pOrder->OrderPriceType
+			//<< ",UserID-" << pOrder->UserID
+			//<< ",OrderPriceType-" << pOrder->OrderPriceType
 			<< ",Direction-" << pOrder->Direction
 			<< ",CombOffsetFlag-" << pOrder->CombOffsetFlag
-			<< ",CombHedgeFlag-" << pOrder->CombHedgeFlag
+			//<< ",CombHedgeFlag-" << pOrder->CombHedgeFlag
 			<< ",LimitPrice-" << pOrder->LimitPrice
 			<< ",VolumeTotalOriginal-" << pOrder->VolumeTotalOriginal
-			<< ",TimeCondition-" << pOrder->TimeCondition
-			<< ",GTDDate-" << pOrder->GTDDate
-			<< ",VolumeCondition-" << pOrder->VolumeCondition
-			<< ",MinVolume-" << pOrder->MinVolume
-			<< ",ContingentCondition-" << pOrder->ContingentCondition
-			<< ",StopPrice-" << pOrder->StopPrice
-			<< ",ForceCloseReason-" << pOrder->ForceCloseReason
-			<< ",IsAutoSuspend-" << pOrder->IsAutoSuspend
-			<< ",BusinessUnit-" << pOrder->BusinessUnit
-			<< ",RequestID-" << pOrder->RequestID
+			//<< ",TimeCondition-" << pOrder->TimeCondition
+			//<< ",GTDDate-" << pOrder->GTDDate
+			//<< ",VolumeCondition-" << pOrder->VolumeCondition
+			//<< ",MinVolume-" << pOrder->MinVolume
+			//<< ",ContingentCondition-" << pOrder->ContingentCondition
+			//<< ",StopPrice-" << pOrder->StopPrice
+			//<< ",ForceCloseReason-" << pOrder->ForceCloseReason
+			//<< ",IsAutoSuspend-" << pOrder->IsAutoSuspend
+			//<< ",BusinessUnit-" << pOrder->BusinessUnit
+			//<< ",RequestID-" << pOrder->RequestID
 			<< ",OrderLocalID-" << pOrder->OrderLocalID
-			<< ",ExchangeID-" << pOrder->ExchangeID
-			<< ",ParticipantID-" << pOrder->ParticipantID
-			<< ",ClientID-" << pOrder->ClientID
-			<< ",ExchangeInstID-" << pOrder->ExchangeInstID
-			<< ",TraderID-" << pOrder->TraderID
-			<< ",InstallID-" << pOrder->InstallID
+			//<< ",ExchangeID-" << pOrder->ExchangeID
+			//<< ",ParticipantID-" << pOrder->ParticipantID
+			//<< ",ClientID-" << pOrder->ClientID
+			//<< ",ExchangeInstID-" << pOrder->ExchangeInstID
+			//<< ",TraderID-" << pOrder->TraderID
+			//<< ",InstallID-" << pOrder->InstallID
 			<< ",OrderSubmitStatus-" << pOrder->OrderSubmitStatus
-			<< ",NotifySequence-" << pOrder->NotifySequence
+			//<< ",NotifySequence-" << pOrder->NotifySequence
 			<< ",TradingDay-" << pOrder->TradingDay
-			<< ",SettlementID-" << pOrder->SettlementID
+			//<< ",SettlementID-" << pOrder->SettlementID
 			<< ",OrderSysID-" << pOrder->OrderSysID
-			<< ",OrderSource-" << pOrder->OrderSource
+			//<< ",OrderSource-" << pOrder->OrderSource
 			<< ",OrderStatus-" << pOrder->OrderStatus
-			<< ",OrderType-" << pOrder->OrderType
+			//<< ",OrderType-" << pOrder->OrderType
 			<< ",VolumeTraded-" << pOrder->VolumeTraded
 			<< ",VolumeTotal-" << pOrder->VolumeTotal
 			<< ",InsertDate-" << pOrder->InsertDate
 			<< ",InsertTime-" << pOrder->InsertTime
 			<< ",ActiveTime-" << pOrder->ActiveTime
-			<< ",SuspendTime-" << pOrder->SuspendTime
-			<< ",UpdateTime-" << pOrder->UpdateTime
-			<< ",CancelTime-" << pOrder->CancelTime
-			<< ",ActiveTraderID-" << pOrder->ActiveTraderID
-			<< ",ClearingPartID-" << pOrder->ClearingPartID
-			<< ",SequenceNo-" << pOrder->SequenceNo
-			<< ",FrontID-" << pOrder->FrontID
-			<< ",SessionID-" << pOrder->SessionID
-			<< ",UserProductInfo-" << pOrder->UserProductInfo
+			//<< ",SuspendTime-" << pOrder->SuspendTime
+			//<< ",UpdateTime-" << pOrder->UpdateTime
+			//<< ",CancelTime-" << pOrder->CancelTime
+			//<< ",ActiveTraderID-" << pOrder->ActiveTraderID
+			//<< ",ClearingPartID-" << pOrder->ClearingPartID
+			//<< ",SequenceNo-" << pOrder->SequenceNo
+			//<< ",FrontID-" << pOrder->FrontID
+			//<< ",SessionID-" << pOrder->SessionID
+			//<< ",UserProductInfo-" << pOrder->UserProductInfo
 			<< ",StatusMsg-" << pOrder->StatusMsg
-			<< ",UserForceClose-" << pOrder->UserForceClose
-			<< ",ActiveUserID-" << pOrder->ActiveUserID
-			<< ",BrokerOrderSeq-" << pOrder->BrokerOrderSeq
-			<< ",RelativeOrderSysID-" << pOrder->RelativeOrderSysID
-			<< ",ZCETotalTradedVolume-" << pOrder->ZCETotalTradedVolume
-			<< ",IsSwapOrder-" << pOrder->IsSwapOrder
-			<< "\n";
+			//<< ",UserForceClose-" << pOrder->UserForceClose
+			//<< ",ActiveUserID-" << pOrder->ActiveUserID
+			//<< ",BrokerOrderSeq-" << pOrder->BrokerOrderSeq
+			//<< ",RelativeOrderSysID-" << pOrder->RelativeOrderSysID
+			//<< ",ZCETotalTradedVolume-" << pOrder->ZCETotalTradedVolume
+			//<< ",IsSwapOrder-" << pOrder->IsSwapOrder
+			<< "\n" );
 	}
 
 	zc::PlannedOrderItem* po = getLocalOrder(pOrder->OrderRef);
@@ -1011,7 +1026,8 @@ void CTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder) {
 		if (THOST_FTDC_OST_Canceled == pOrder->OrderStatus)
 		{
 			// 撤单成功后的回报
-			std::cout << "总送单数量：" << po->lot << " 撤单数量：" << po->clot << std::endl;
+			LOG("总送单数量：" << std::internal <<po->lot << " 撤单数量：" << po->clot << std::endl);
+			/*
 			if (po->clot == po->lot) // 全撤
 			{
 				po->status = zc::LEG_STATUS::EM_LEG_CANCELED;
@@ -1020,7 +1036,8 @@ void CTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder) {
 			{
 				po->status = zc::LEG_STATUS::EM_LEG_ParCANCELED;
 			}
-			std::cout << "撤单成功！\n";
+			*/
+			LOG("撤单成功！\n");
 			return;
 		}
 
@@ -1028,61 +1045,61 @@ void CTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder) {
 		if (THOST_FTDC_OSS_Accepted == pOrder->OrderSubmitStatus && 0 == pOrder->VolumeTraded)
 		{
 			po->status = zc::LEG_STATUS::EM_LEG_ORDERED; // 已报
-			std::cout << "已报成功！\n";
+			LOG("已报成功！\n");
 			po->exchId = pOrder->ExchangeID;
 			po->ordsysId = pOrder->OrderSysID;
 		}
 		else if (THOST_FTDC_OSS_InsertRejected == pOrder->OrderSubmitStatus)
 		{
-			std::cout << "order ref:" << pOrder->OrderRef << " is rejected!\n";
+			LOG("order ref:" << pOrder->OrderRef << " is rejected!\n");
 			po->status = zc::LEG_STATUS::EM_LEG_CANCELED; // 被拒，系统自动撤单
 		}
 	}
 	else
 	{
 		// 没找到
-		std::cout << "OnRtnOrder ERROR: local order: " << pOrder->OrderRef << " mei zhao dao mei zhao dao ################################ mei zhao dao\n";
+		LOG("OnRtnOrder ERROR: local order: " << pOrder->OrderRef << " mei zhao dao mei zhao dao ################################ mei zhao dao\n" );
 	}
 };
 
 ///成交通知
-void CTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade) {
-	printf("OnRtnTrade %s\n", pTrade->OrderRef);
-	dqk_log::CLogApi log;
-	log << "成交通知-OnRtnTrade" << "\n";
+void CTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
+{
+	int thid = GetCurrentThreadId();
+	LOG("成交通知-OnRtnTrade : " << pTrade->OrderRef << "\n");
 	if (NULL != pTrade)
 	{
-		log << "pTrade:BrokerID-" << pTrade->BrokerID
-			<< ",InvestorID-" << pTrade->InvestorID
+		LOG("pTrade:BrokerID-" << pTrade->BrokerID
+			//<< ",InvestorID-" << pTrade->InvestorID
 			<< ",InstrumentID-" << pTrade->InstrumentID
 			<< ",OrderRef-" << pTrade->OrderRef
-			<< ",UserID-" << pTrade->UserID
-			<< ",ExchangeID-" << pTrade->ExchangeID
-			<< ",TradeID-" << pTrade->TradeID
+			//<< ",UserID-" << pTrade->UserID
+			//<< ",ExchangeID-" << pTrade->ExchangeID
+			//<< ",TradeID-" << pTrade->TradeID
 			<< ",Direction-" << pTrade->Direction
-			<< ",OrderSysID-" << pTrade->OrderSysID
-			<< ",ParticipantID-" << pTrade->ParticipantID
-			<< ",ClientID-" << pTrade->ClientID
-			<< ",TradingRole-" << pTrade->TradingRole
-			<< ",ExchangeInstID-" << pTrade->ExchangeInstID
+			//<< ",OrderSysID-" << pTrade->OrderSysID
+			//<< ",ParticipantID-" << pTrade->ParticipantID
+			//<< ",ClientID-" << pTrade->ClientID
+			//<< ",TradingRole-" << pTrade->TradingRole
+			//<< ",ExchangeInstID-" << pTrade->ExchangeInstID
 			<< ",OffsetFlag-" << pTrade->OffsetFlag
-			<< ",HedgeFlag-" << pTrade->HedgeFlag
+			//<< ",HedgeFlag-" << pTrade->HedgeFlag
 			<< ",Price-" << pTrade->Price
 			<< ",Volume-" << pTrade->Volume
 			<< ",TradeDate-" << pTrade->TradeDate
 			<< ",TradeTime-" << pTrade->TradeTime
-			<< ",TradeType-" << pTrade->TradeType
-			<< ",PriceSource-" << pTrade->PriceSource
-			<< ",TraderID-" << pTrade->TraderID
-			<< ",OrderLocalID-" << pTrade->OrderLocalID
-			<< ",ClearingPartID-" << pTrade->ClearingPartID
-			<< ",BusinessUnit-" << pTrade->BusinessUnit
-			<< ",SequenceNo-" << pTrade->SequenceNo
+			//<< ",TradeType-" << pTrade->TradeType
+			//<< ",PriceSource-" << pTrade->PriceSource
+			//<< ",TraderID-" << pTrade->TraderID
+			//<< ",OrderLocalID-" << pTrade->OrderLocalID
+			//<< ",ClearingPartID-" << pTrade->ClearingPartID
+			//<< ",BusinessUnit-" << pTrade->BusinessUnit
+			//<< ",SequenceNo-" << pTrade->SequenceNo
 			<< ",TradingDay-" << pTrade->TradingDay
-			<< ",SettlementID-" << pTrade->SettlementID
-			<< ",BrokerOrderSeq-" << pTrade->BrokerOrderSeq
-			<< ",TradeSource-" << pTrade->TradeSource
-			<< "\n";
+			//<< ",SettlementID-" << pTrade->SettlementID
+			//<< ",BrokerOrderSeq-" << pTrade->BrokerOrderSeq
+			//<< ",TradeSource-" << pTrade->TradeSource
+			<< "\n" );
 	}
 	// 成交后修改另一腿状态
 	zc::PlannedOrderItem* po = getLocalOrder(pTrade->OrderRef);
@@ -1097,75 +1114,73 @@ void CTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade) {
 		{
 			assert(po->elot == po->lot);
 			po->status = zc::LEG_STATUS::EM_LEG_TRADED;
-			std::cout << "订单已全部成交: "<<pTrade->Volume<<"\n";
+			LOG("订单已全部成交: "<<pTrade->Volume<<"\n");
 		}
 		else
 		{
 			po->status = zc::LEG_STATUS::EM_LEG_ParTRADED;
-			std::cout << "订单部分成交数量: "<<pTrade->Volume<<"\n";
+			LOG("订单部分成交数量: "<<pTrade->Volume<<"\n");
 		}
 	}
 	else
 	{
 		// 没找到订单ref
-		std::cout << "OnRtnTrade没有找到订单ref " << pTrade->OrderRef << "\n";
+		LOG("OnRtnTrade没有找到订单ref " << pTrade->OrderRef << "\n" );
 	}
 };
 
 
 ///报单录入错误回报
-void CTradeSpi::OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo) {
-
-	printf("报单录入错误回报\n");
-	dqk_log::CLogApi log;
-	std::cout << "报单录入错误回报-OnErrRtnOrderInsert";
+void CTradeSpi::OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo)
+{
+	int thid = GetCurrentThreadId();
+	LOG("报单录入错误回报-OnErrRtnOrderInsert");
 	if (NULL != pRspInfo)
 	{
-		printf("报单录入错误回报：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		std::cout << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("报单录入错误回报 : pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
+
 	if (NULL != pInputOrder)
 	{
-		std::cout << "pInputOrder:BrokerID-" << pInputOrder->BrokerID
-			<< ",InvestorID-" << pInputOrder->InvestorID
+		LOG("pInputOrder:BrokerID-" << pInputOrder->BrokerID
+			//<< ",InvestorID-" << pInputOrder->InvestorID
 			<< ",InstrumentID-" << pInputOrder->InstrumentID
 			<< ",OrderRef-" << pInputOrder->OrderRef
-			<< ",UserID-" << pInputOrder->UserID
+			//<< ",UserID-" << pInputOrder->UserID
 			<< ",OrderPriceType-" << pInputOrder->OrderPriceType
 			<< ",Direction-" << pInputOrder->Direction
 			<< ",CombOffsetFlag-" << pInputOrder->CombOffsetFlag
-			<< ",CombHedgeFlag-" << pInputOrder->CombHedgeFlag
+			//<< ",CombHedgeFlag-" << pInputOrder->CombHedgeFlag
 			<< ",LimitPrice-" << pInputOrder->LimitPrice
 			<< ",VolumeTotalOriginal-" << pInputOrder->VolumeTotalOriginal
-			<< ",TimeCondition-" << pInputOrder->TimeCondition
-			<< ",GTDDate-" << pInputOrder->GTDDate
-			<< ",VolumeCondition-" << pInputOrder->VolumeCondition
-			<< ",MinVolume-" << pInputOrder->MinVolume
-			<< ",ContingentCondition-" << pInputOrder->ContingentCondition
-			<< ",StopPrice-" << pInputOrder->StopPrice
-			<< ",ForceCloseReason-" << pInputOrder->ForceCloseReason
-			<< ",IsAutoSuspend-" << pInputOrder->IsAutoSuspend
-			<< ",BusinessUnit-" << pInputOrder->BusinessUnit
-			<< ",RequestID-" << pInputOrder->RequestID
-			<< ",UserForceClose-" << pInputOrder->UserForceClose
-			<< ",IsSwapOrder-" << pInputOrder->IsSwapOrder
-			<< "\n";
+			//<< ",TimeCondition-" << pInputOrder->TimeCondition
+			//<< ",GTDDate-" << pInputOrder->GTDDate
+			//<< ",VolumeCondition-" << pInputOrder->VolumeCondition
+			//<< ",MinVolume-" << pInputOrder->MinVolume
+			//<< ",ContingentCondition-" << pInputOrder->ContingentCondition
+			//<< ",StopPrice-" << pInputOrder->StopPrice
+			//<< ",ForceCloseReason-" << pInputOrder->ForceCloseReason
+			//<< ",IsAutoSuspend-" << pInputOrder->IsAutoSuspend
+			//<< ",BusinessUnit-" << pInputOrder->BusinessUnit
+			//<< ",RequestID-" << pInputOrder->RequestID
+			//<< ",UserForceClose-" << pInputOrder->UserForceClose
+			//<< ",IsSwapOrder-" << pInputOrder->IsSwapOrder
+			<< "\n" );
 	}
 };
 
 ///报单操作错误回报
-void CTradeSpi::OnErrRtnOrderAction(CThostFtdcOrderActionField *pOrderAction, CThostFtdcRspInfoField *pRspInfo) {
-	printf("报单操作错误回报\n");
-	dqk_log::CLogApi log;
-	log << "报单操作错误回报-OnErrRtnOrderAction" << "\n";
+void CTradeSpi::OnErrRtnOrderAction(CThostFtdcOrderActionField *pOrderAction, CThostFtdcRspInfoField *pRspInfo)
+{
+	int thid = GetCurrentThreadId();
+	LOG("报单操作错误回报-OnErrRtnOrderAction" << "\n");
 	if (NULL != pRspInfo)
 	{
-		printf("报单操作错误回报：Msg-%d-%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n";
+		LOG("报单操作错误回报 : pRspInfo:errID-" << pRspInfo->ErrorID << ",errMsg-" << pRspInfo->ErrorMsg << "\n");
 	}
 	if (NULL != pOrderAction)
 	{
-		log << "pOrderAction:BrokerID-" << pOrderAction->BrokerID
+		LOG("pOrderAction:BrokerID-" << pOrderAction->BrokerID
 			<< ",InvestorID-" << pOrderAction->InvestorID
 			<< ",OrderActionRef-" << pOrderAction->OrderActionRef
 			<< ",OrderRef-" << pOrderAction->OrderRef
@@ -1190,7 +1205,7 @@ void CTradeSpi::OnErrRtnOrderAction(CThostFtdcOrderActionField *pOrderAction, CT
 			<< ",UserID-" << pOrderAction->UserID
 			<< ",StatusMsg-" << pOrderAction->StatusMsg
 			<< ",InstrumentID-" << pOrderAction->InstrumentID
-			<< "\n";
+			<< "\n" );
 
 		zc::PlannedOrderItem* po = getLocalOrder(pOrderAction->OrderRef);
 		// po->status = zc::LEG_STATUS::
@@ -1330,21 +1345,22 @@ void CTradeSpi::OnRtnCancelAccountByBank(CThostFtdcCancelAccountField *pCancelAc
 void CTradeSpi::OnRtnChangeAccountByBank(CThostFtdcChangeAccountField *pChangeAccount) {};
 
 /// 当收到合约价位查询应答时回调该函数
-void CTradeSpi::onRspMBLQuot(CThostMBLQuotData *pMBLQuotData, CThostFtdcRspInfoField *pRspMsg, int nRequestID, bool bIsLast){
+void CTradeSpi::onRspMBLQuot(CThostMBLQuotData *pMBLQuotData, CThostFtdcRspInfoField *pRspMsg, int nRequestID, bool bIsLast)
+{
+	int thid = GetCurrentThreadId();
 	printf("当收到合约价位查询应答时回调该函数-%d\n", nRequestID);
-	dqk_log::CLogApi log;
-	log << "当收到合约价位查询应答时回调该函数-OnRspQrySettlementInfoConfirm-" << nRequestID << ",bIsLast-" << bIsLast << "\n";
+	LOG("当收到合约价位查询应答时回调该函数-OnRspQrySettlementInfoConfirm-" << nRequestID << ",bIsLast-" << bIsLast << "\n");
 	if (NULL != pRspMsg)
 	{
 		printf("当收到合约价位查询应答时回调该函数：Msg-%d-%s\n", pRspMsg->ErrorID, pRspMsg->ErrorMsg);
-		log << "pRspInfo:errID-" << pRspMsg->ErrorID << ",errMsg-" << pRspMsg->ErrorMsg << "\n";
+		LOG("pRspInfo:errID-" << pRspMsg->ErrorID << ",errMsg-" << pRspMsg->ErrorMsg << "\n");
 	}
 	if (NULL != pMBLQuotData)
 	{
-		log << "pMBLQuotData:ContractID-" << pMBLQuotData->InstrumentID
+		LOG("pMBLQuotData:ContractID-" << pMBLQuotData->InstrumentID
 			<< ",BsFlag-" << pMBLQuotData->Direction
 			<< ",Qty-" << pMBLQuotData->Volume
-			<< ",Price-" << pMBLQuotData->Price << "\n";
+			<< ",Price-" << pMBLQuotData->Price << "\n");
 	}
 };
 
@@ -1355,7 +1371,8 @@ void CTradeSpi::quit()
 
 void CTradeSpi::CancelOrd(zc::PlannedOrderItem* pOrd)
 {
-	std::cout << "cancel ord of ref: " << pOrd->ordRef << std::endl;
+	int thid = GetCurrentThreadId();
+	LOG("cancel ord of ref: " << pOrd->ordRef << std::endl );
 	CThostFtdcInputOrderActionField act;
 	strncpy(act.InstrumentID, pOrd->instId.c_str(), sizeof(TThostFtdcInstrumentIDType));
 	strncpy(act.ExchangeID, pOrd->exchId.c_str(), sizeof(TThostFtdcExchangeIDType));
@@ -1370,20 +1387,27 @@ void CTradeSpi::CancelOrd(zc::PlannedOrderItem* pOrd)
 	int ret = m_pReqApi->ReqOrderAction(&act, GetRequsetID());
 	if (0 != ret)
 	{
-		std::cout << "撤单指令发送失败！\n";
+		LOG("撤单指令发送失败！\n" );
 	}
 }
 
 zc::PlannedOrderItem* CTradeSpi::getLocalOrder(const char* ref)
 {
+	int thid = GetCurrentThreadId();
 	long or = atol(ref);
 	zc::PlannedOrderItem* po = nullptr;
 
-	while (InterlockedExchange64(&zc::Arbitrage::spin_Locker_ordbook, TRUE)){ Sleep(0); }
-	
+	int blocked = 0;
+	while (InterlockedExchange64(&zc::Arbitrage::spin_Locker_ordbook, TRUE))
+	{
+		blocked++;
+		Sleep(0); 
+	}
+	LOG("blocked at getLocalOrder times:" << blocked << std::endl );
+
 	//std::cout << "getLocalOrder... ordbook size:" << zc::Arbitrage::ordbook.size() << std::endl;
-	std::cout << "order ref to be found:" << ref << std::endl;
-	for (auto jt = zc::Arbitrage::ordbook.begin(); jt != zc::Arbitrage::ordbook.end(); ++jt)std::cout << "refs in ordbook:" << (*jt)->ordRef << std::endl;;
+	LOG("order ref to be found:" << ref << std::endl );
+	for (auto jt = zc::Arbitrage::ordbook.begin(); jt != zc::Arbitrage::ordbook.end(); ++jt)LOG("refs in ordbook:" << (*jt)->ordRef << std::endl);
 
 	auto it = std::find_if(zc::Arbitrage::ordbook.begin(), zc::Arbitrage::ordbook.end(), [or](zc::PlannedOrderItem* in){return or == in->ordRef; });
 	if (zc::Arbitrage::ordbook.end() != it) po = (*it);
@@ -1394,6 +1418,7 @@ zc::PlannedOrderItem* CTradeSpi::getLocalOrder(const char* ref)
 
 long CTradeSpi::Send(const char* instId, int lot, char dir, double prc, char ocflg, bool isSpot)
 {
+	int thid = GetCurrentThreadId();
 	long thisOrf = OrderRef;
 	CThostFtdcInputOrderField InputOrder;
 	memset(&InputOrder, 0, sizeof(InputOrder));
@@ -1401,7 +1426,7 @@ long CTradeSpi::Send(const char* instId, int lot, char dir, double prc, char ocf
 	strncpy(InputOrder.UserID, m_loginField.UserID, sizeof(InputOrder.UserID));//交易员
 	strncpy(InputOrder.InvestorID, isSpot ? InvestorID_Spot : InvestorID_Future, sizeof(TThostFtdcInvestorIDType));
 	sprintf(InputOrder.OrderRef, "%012ld", thisOrf);//本地保单号
-	std::cout << "cur sended OrderRef: " << InputOrder.OrderRef << std::endl;
+	LOG("cur sended OrderRef: " << InputOrder.OrderRef << std::endl );
 	//InputOrder.Direction = THOST_FTDC_D_Buy;//买卖
 	//InputOrder.CombHedgeFlag[0] = '4';//THOST_FTDC_HF_Speculation;//投机
 	InputOrder.CombOffsetFlag[0] = ocflg;//开平
@@ -1447,28 +1472,31 @@ long CTradeSpi::Send(const char* instId, int lot, char dir, double prc, char ocf
 	int ret = m_pReqApi->ReqOrderInsert(&InputOrder, InputOrder.RequestID);
 	if (0 != ret)
 	{
-		printf("委托失败!\n");
+		LOG("委托失败!\n" );
 	}
 	return thisOrf;
 }
 
 long CTradeSpi::SendOpen(const char* instId, int lot, char dir, double prc, bool isSpot)
 {
+	int thid = GetCurrentThreadId();
 	// zc::TRADE_OCFLAG oc
-	std::cout << "send open:" << zc::tradedir(dir) << " " << lot << " lot at price " << prc << std::endl;
+	LOG("send open:" << zc::tradedir(dir) << " " << lot << " lot at price " << prc << std::endl );
 	// Send(int lot, char dir, float prc, char ocflg)
 	return Send(instId, lot, dir, prc, THOST_FTDC_OF_Open, isSpot);
 }
 
 long CTradeSpi::SendClose(const char* instId, int lot, char dir, double prc, bool isSpot)
 {
+	int thid = GetCurrentThreadId();
 	//zc::TRADE_OCFLAG oc
-	std::cout << "send close:" << zc::tradedir(dir) << " " << lot << " lot at price " << prc << std::endl;
+	LOG("send close:" << zc::tradedir(dir) << " " << lot << " lot at price " << prc << std::endl );
 	return Send(instId, lot, dir, prc, isSpot ? THOST_FTDC_OF_Close : THOST_FTDC_OF_CloseToday, isSpot);
 }
 
 bool CTradeSpi::QryInvestorId()
 {
+	int thid = GetCurrentThreadId();
 	memset(InvestorID_Future, 0, sizeof(TThostFtdcInvestorIDType));
 	CThostFtdcQryInvestorField qfd;
 	strcpy(qfd.BrokerID, "");
@@ -1477,18 +1505,18 @@ bool CTradeSpi::QryInvestorId()
 	int ret = m_pReqApi->ReqQryInvestor(&qfd, GetRequsetID());
 	if (0 != ret)
 	{
-		std::cout << "查询InvestorID失败！\n";
+		LOG("查询InvestorID失败！\n" );
 	}
 	int timeout = 100000000;
 	for (; timeout >0 ; timeout--)
 	{
 		if (strlen(InvestorID_Future)>0)
 		{
-			std::cout << "查询InvestorID成功: " << InvestorID_Future << std::endl;;
+			LOG("查询InvestorID成功: " << InvestorID_Future << std::endl );
 			return true;
 		}
 		Sleep(0);
 	}
-	std::cout << "查询InvestorID超时\n";
+	LOG("查询InvestorID超时\n");
 	return false;
 }

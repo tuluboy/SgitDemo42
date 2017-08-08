@@ -1,7 +1,9 @@
 #pragma once
+#include "SysLog.h"
 #include <mysql.h> 
 #include <string>
 #include <functional>
+
 template<typename rowItem>
 class dbQuery
 {
@@ -18,21 +20,21 @@ public:
 	MYSQL* conn;
 	std::string qrySql;
 	std::function<void(dbQuery<rowItem>* pq, MYSQL_ROW& Row, int col)> rowParser; // ½«
-	void doParse(){
+	void doParse(int thid){
 		MYSQL_RES *result;
 		MYSQL_ROW row;
 		//mysql_query(conn, qrySql.c_str());
 		result = mysql_store_result(conn);
 		if (!result)
 		{
-			std::cout << "db qry result null.....\n";
+			LOG("db qry result null.....\n");
 			return;
 		}
 		int num_fields = mysql_num_fields(result);
 		nRows = mysql_num_rows(result);
 		if (0 == nRows)
 		{
-			std::cout << "ERROR: select data returned 0 rows....\n";
+			LOG("ERROR: select data returned 0 rows....\n");
 		}
 
 		allRowsData = new rowItem[nRows];
@@ -46,10 +48,10 @@ public:
 			curRow++;
 		}
 	};
-	void doQry()
+	void doQry(int thid)
 	{
 		mysql_query(conn, qrySql.c_str());
-		doParse();
+		doParse(thid);
 	};
 };
 
@@ -64,6 +66,6 @@ public:
 	std::string pswd;
 	std::string lib;
 	MYSQL *conn;
-	void init();
+	void init(int thid);
 };
 

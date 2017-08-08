@@ -18,6 +18,7 @@
 #include "dbman.h"
 //#include "DtTm.h"
 #include <iomanip>
+#include "SysLog.h"
 
 #ifdef _USE_MYSQL_
 
@@ -37,6 +38,10 @@ void sgit_Sleep(int seconds)
 	::sleep(seconds);
 }
 #endif // !WIN3
+
+// 全局日志对象
+SysLog g_Log;
+
 // 订阅行情
 char * pSubInstrumnet[] =
 {
@@ -44,10 +49,13 @@ char * pSubInstrumnet[] =
 	"au1712",
 	"Ag(T+D)",
 	"Au(T+D)",
-	"mAu(T+D)"
+	"mAu(T+D)",
+	"rb1710", // 增加了新的套利对要修改UpdateTick函数
+	"rb1801"
 };
 
 dbman* g_pDb = nullptr;
+
 
 int requestID = 0;
 int GetRequsetID(){ return ++requestID; }
@@ -154,9 +162,11 @@ const std::string& ToString(std::stringstream& ss, CThostFtdcDepthMarketDataFiel
 // 行情线程
 void TickFunc(CMdSpi* pMdSpi = nullptr)
 {
+	int thid = GetCurrentThreadId();
+	LOG("TickThread created...\n");
 	if (!pMdSpi)
 	{
-		std::cout << "CMdSpi object null error!\n" << std::endl;
+		LOG("CMdSpi object null error!\n");
 		Sleep(1000);
 		return;
 	}
@@ -177,9 +187,21 @@ void TickFunc(CMdSpi* pMdSpi = nullptr)
 			curTime = zc::GetCurTime();
 			if (curTime >= dbUpdateTime)
 			{
-				zc::Arbitrage::UpdateParams();
+				zc::Arbitrage::UpdateParams(thid);
 				dbUpdateTime = curTime + 30;
 				//std::cout << "\nUpdateParams done......\n";
+				LOG("UpdateParams done......\n");
+				int ns = zc::Arbitrage::ArbiTrades.size();
+				//zc::RecieveInput("\nwhich to be showed:  ", ind, [ns](int& in)->bool{return in < ns; });
+				LOG(std::left << std::setw(18) << "ArbiInstID" << std::right << std::setw(10) << "Lower1" << std::right << std::setw(10) << "Upper1" << std::right << std::setw(10) << "Lower2" << std::right << std::setw(10) << "Upper2\n");
+				for (int i = 0; i < ns; i++)
+				{
+					LOG(std::left << std::setw(18) << zc::Arbitrage::ArbiTrades[i].ArbiInst.ArbiInstID \
+						<< std::right << std::setw(10) << zc::Arbitrage::ArbiTrades[i].ArbiInst.getSpreadLower1() \
+						<< std::right << std::setw(10) << zc::Arbitrage::ArbiTrades[i].ArbiInst.getSpreadUpper1() \
+						<< std::right << std::setw(10) << zc::Arbitrage::ArbiTrades[i].ArbiInst.getSpreadLower2() \
+						<< std::right << std::setw(10) << zc::Arbitrage::ArbiTrades[i].ArbiInst.getSpreadUpper2() << std::endl);
+				}
 			}
 			Sleep(100);
 			continue;
@@ -188,7 +210,7 @@ void TickFunc(CMdSpi* pMdSpi = nullptr)
 		zc::Arbitrage::ticks.pop();
 		//ToString(ss, curTick);
 		//std::cout << ss.str() << std::endl;
-		zc::Arbitrage::UpdateTick(curTick);
+		zc::Arbitrage::UpdateTick(curTick, thid);
 		if (111 != pMdSpi->running)break;
 	}
 }
@@ -196,21 +218,29 @@ void TickFunc(CMdSpi* pMdSpi = nullptr)
 // tradeSpi
 void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 {
+	int thid = GetCurrentThreadId();
+	LOG("order thread is created...\n");
+
 	if (!pTrdSpi)
 	{
-		std::cout << "CTradeSpi object null error!\n" << std::endl;
+		LOG("CTradeSpi object null error!\n");
 		Sleep(1000);
 		return;
 	}
-
 	std::string oc;
 	for (;;)
 	{
-		while (InterlockedExchange64(&(zc::Arbitrage::spin_Locker_ordbook), TRUE)){ Sleep(0); }
+		int blocked = 0;
+		while (InterlockedExchange64(&(zc::Arbitrage::spin_Locker_ordbook), TRUE))
+		{
+			blocked++;
+			Sleep(0); 
+		}
+		if(blocked>100)LOG("orderFunc blocked time:" << blocked << std::endl );
 		// 处理多个套利对
 		for (auto it = zc::Arbitrage::ArbiTrades.begin(); it != zc::Arbitrage::ArbiTrades.end(); ++it)
 		{
-			it->UpdateArbiOrd(); // 刷新母单状态 生成子单订单，即下单计划下达
+			it->UpdateArbiOrd(thid); // 刷新母单状态 生成子单订单，即下单计划下达
 		}
 		// 具体订单执行层
 		// 条件单处理，只需要按照指令傻傻执行即可
@@ -219,7 +249,6 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 		// 超时未成的撤单重发
 		// 条件单模式：定时发单，超时撤单，成交后触发新单
 		//std::cout << "ready into InterlockedExchange64.. spin_Locker_ordbook ..\n";
-
 		//std::cout << "already into InterlockedExchange64.. spin_Locker_ordbook ..\n";
 		for (auto it = zc::Arbitrage::ordbook.begin(); it != zc::Arbitrage::ordbook.end(); ++it)
 		{
@@ -234,7 +263,7 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 				if (zc::LEG_STATUS::EM_LEG_SENDREADY == (*it)->status)
 				{
 					// Send后面必须设置status，否则会重复送单
-					std::cout << "status:" << (*it)->status << " condi:" << (*it)->condition << " send issue: " << (*it)->instId << std::endl;;
+					LOG(" send issue: " << (*it)->instId << std::endl);
 					(*it)->condition = zc::LEG_CONDITION::EM_COND_NULL;
 					(*it)->ordSendedTime = zc::GetCurTime();
 					(*it)->ordRef = ++(*it)->pTrdSpi->OrderRef;
@@ -250,7 +279,7 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 					}
 					else
 					{
-						std::cout << "send order ocFlag error!\n";
+						LOG("send order ocFlag error!\n");
 						assert(0);
 					}
 
@@ -258,28 +287,30 @@ void orderFunc(CTradeSpi* pTrdSpi = nullptr)
 					// Send后面必须设置status，否则会重复送单
 					if (zc::LEG_TYPE::EM_LeftLeg == (*it)->leg)
 					{
-						std::cout << oc << " left leg sended..." << std::endl;
+						LOG(oc << " left leg sended...\n");
 					}
 					else if (zc::LEG_TYPE::EM_RightLeg == (*it)->leg)
 					{
-						std::cout << oc << " right leg sended..." << std::endl;
+						LOG( oc << " right leg sended...\n");
 					}
 					else
 					{
-						std::cout << "leg error..." << std::endl;
+						LOG("leg error...\n");
 					}
 				}
 				break;
 			case zc::LEG_CONDITION::EM_WAIT:
 				// 等待
 				//(*it)->curtime = zc::GetCurTime();
-				/*if ((*it)->arbiOrd->sendDelay>0 && (*it)->curtime - (*it)->ordCreatedTime > (*it)->timeout)
+				/*
+				if ((*it)->arbiOrd->sendDelay>0 && (*it)->curtime - (*it)->ordCreatedTime > (*it)->timeout)
 				{
 				// 等待时间到
 				std::cout << "waiting order timeout\n";
 				(*it)->condition = zc::LEG_CONDITION::EM_OK;
 				(*it)->status = zc::LEG_STATUS::EM_LEG_SENDREADY;
-				}*/
+				}
+				*/
 				break;
 			case zc::LEG_CONDITION::EM_CANCEL:
 				// it->arbiOrd->arbit->pTrdSpi->m_pReqApi->ReqOrderAction();
@@ -334,7 +365,8 @@ void dispspread()
 {
 	for (auto it = zc::Arbitrage::ArbiTrades.begin(); it != zc::Arbitrage::ArbiTrades.end(); ++it)
 	{
-		std::cout << it->ArbiInst.ArbiInstID << " longSpread1:" << it->ArbiInst.longBasisSpread1 << " shortSpread1:" << it->ArbiInst.shortBasisSpread1 << std::endl;
+		std::cout << it->ArbiInst.ArbiInstID << " longSpread1:" << it->ArbiInst.longBasisSpread1 << " shortSpread1:" << it->ArbiInst.shortBasisSpread1 <<
+			"  AutoTrade? " << it->getAutoTrade() << std::endl;
 	}
 }
 
@@ -460,6 +492,7 @@ int main(int argc, char** argv)
 	test();
 	return 0;
 #endif
+	int thid = GetCurrentThreadId();
 	try
 	{
 		std::cout << "############黄金白银期现套利系统###########\n";
@@ -489,6 +522,7 @@ int main(int argc, char** argv)
 			FuserID = "12200393";
 			TuserID = "165766";
 			pswd = "norway%1";
+			LOG("__________________ 实盘交易 __________________\n");
 		}
 		else
 		{
@@ -497,6 +531,7 @@ int main(int argc, char** argv)
 			FuserID = "08000014";
 			TuserID = "06000014";
 			pswd = "888888";
+			LOG("__________________ 模拟交易 __________________\n");
 		}
 
 		strcpy(LoginField.UserID, FuserID.c_str());
@@ -519,11 +554,11 @@ int main(int argc, char** argv)
 		pMdApi->RegisterFront(quotIp);
 
 		//init
-		std::cout << "traderApi init...\n";
+		LOG("traderApi init...\n" );
 		pTradeApi->Init();
 
 		//Sleep(3000);
-		std::cout << "mdApi init ...\n";
+		LOG("mdApi init ...\n" );
 		pMdApi->Init();
 
 		Sleep(5000);
@@ -532,7 +567,7 @@ int main(int argc, char** argv)
 		int dbport = 3306;
 		std::string dbip("192.168.1.201"), dbusr("root"), dbpswd("ct_1234"), lib("");
 		g_pDb = new dbman(dbip, dbport, dbusr, dbpswd, lib);
-		g_pDb->init();
+		g_pDb->init(thid);
 
 		zc::Arbitrage::initArbi(&mdSpi, &tradeSpi);
 
@@ -575,7 +610,7 @@ int main(int argc, char** argv)
 	}
 	catch (...)
 	{
-		std::cout << "catch error!\n";
+		LOG("catch error!" );
 	}
 	return 0;
 }
@@ -811,14 +846,7 @@ int ReqQryTradeParam(CThostFtdcTraderApi* pTradeApi)
 
 int UnsubQuot(CThostFtdcMdApi* pMdApi)
 {
-	char * pInstrument[] = {
-		"ag1712",
-		"au1712",
-		"Ag(T+D)",
-		"Au(T+D)",
-		"mAu(T+D)"
-	};
-	return pMdApi->UnSubscribeMarketData(pInstrument, 2);
+	return pMdApi->UnSubscribeMarketData(pSubInstrumnet, sizeof(pSubInstrumnet) / sizeof(char*));
 }
 
 namespace zc

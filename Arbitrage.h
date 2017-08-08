@@ -20,15 +20,15 @@ namespace zc
 		static std::vector<zc::Arbitrage> ArbiTrades; // 可以同时交易多个套利对，目前只有三对
 		static std::vector<TradeRecItem> tradeRecord; // 交易记录
 		static std::vector<PlannedOrderItem*> ordbook; // 全局送单计划表，子单
-		static void UpdateTick(fstech::CThostFtdcDepthMarketDataField& tick);
-		static void UpdateParams(); // 查询数据库获取价差等参数
-		static void UpdateSubOrdStatus();
+		static void UpdateTick(fstech::CThostFtdcDepthMarketDataField& tick, int thid);
+		static void UpdateParams(int thid); // 查询数据库获取价差等参数
 		static LONGLONG spin_Locker_ordbook;
 		static LONGLONG spin_Locker_arbOrders;
-		
+		static void CalcPairPose(int thid);
 		static QryInstrumentFB qrInstFB;
 		static QryPositionFB qrPosFB;
 		static int getArbiPos(CTradeSpi* pTrd); // 查询当前账户可以配对的套利持仓组合
+		static void AddPair(Arbitrage& arbtmp, const char* issleft, const char* rssright, int unitleft, int unitright);
 	public:
 		Arbitrage(CMdSpi* pMd, CTradeSpi* pTrd);
 		~Arbitrage();
@@ -69,10 +69,9 @@ namespace zc
 		float cumProfit;
 		float cumCommission;
 		
-		void ProcSubOrd();
-
 		// 超时处理，主要处理超时未成交的瘸腿合约组的处理
 		void ProcTimeOut(ArbOrdItem& arbiOrd);
+		void SetSendUnit(int a){ SendUnit = a; }
 		int leftPos;
 		int rightPos;
 		int legPosShort;
@@ -86,15 +85,16 @@ namespace zc
 		double avgLongEntrySpread; // 买套利对平均成本
 		double avgShortEntrySpread; // 卖套利对平均成本
 	public:
-		void UpdateLeftTick(fstech::CThostFtdcDepthMarketDataField& tick); // 触发交易逻辑计算
-		void UpdateRightTick(fstech::CThostFtdcDepthMarketDataField& tick); // 触发交易逻辑计算
+		void UpdateLeftTick(fstech::CThostFtdcDepthMarketDataField& tick, int thid); // 触发交易逻辑计算
+		void UpdateRightTick(fstech::CThostFtdcDepthMarketDataField& tick, int thid); // 触发交易逻辑计算
 		volatile LONGLONG spinLock_arbOrders; // arbOrders的锁
 		std::vector<ArbOrdItem> arbOrders; // 套利交易母单表
 		zc::LEG_TYPE GetCurFirst();
-		void UpdateFirst(ArbOrdItem& newOrd); // 确定当前first
+		void UpdateFirst(ArbOrdItem& newOrd, int thid); // 确定当前first
 
-		void UpdateArbiOrd();
+		void UpdateArbiOrd(const int thid);
 		void SendSubOrd(); // 更新本套利对的子单
+		int SendUnit; // 一次送单手数
 		ArbiInstrument ArbiInst;
 		CMdSpi* pMdSpi;
 		CTradeSpi* pTrdSpi;
@@ -105,11 +105,12 @@ namespace zc
 		bool getAutoTrade(){ return AutoTradingEnabled; };
 		void SetAutoTrade(){ AutoTradingEnabled = true; doTradeCount = 0; };
 		void StopAutoTrade(){ AutoTradingEnabled = false; };
+		void dispCurTick(const ArbiInstrument& it, int thid);
 	private:
 		bool AutoTradingEnabled;
 		int doTradeCount;
 		int maxTradeUnit; // 交易单位的上限
-		void DoTrade();
+		void DoTrade(int thid);
 		int buyLeft(PlannedOrderItem& t); // 买开左腿
 		int buyRight(PlannedOrderItem& t); // 买开右腿
 

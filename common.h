@@ -59,10 +59,10 @@ namespace zc
 		std::function<void(PlannedOrderItem* nextOrder)> orderedHook; // 送单成功后触发操作 -- 可能是送一个其他的单子
 		std::function<void(PlannedOrderItem* nextOrder)> tradedHook; // 成交后触发操作 -- 成交完毕后就置 null
 		std::function <void(PlannedOrderItem* nextOrder)> cancelHook; // 撤单成功后触发操作
-		void setCloseOrd(); // 已成交的开仓单，就地发平仓单，填写相应参数，之前部分成交剩下的全部改为整个订单
-		void changeOrdPrc(int in); // in为正，则将价格改激进，为负，改保守
-		float GetMinPoint();
-		float setPrice();
+		void setCloseOrd(int thid); // 已成交的开仓单，就地发平仓单，填写相应参数，之前部分成交剩下的全部改为整个订单
+		void changeOrdPrc(int inPrc, int thid); // in为正，则将价格改激进，为负，改保守
+		float GetMinPoint(int thid);
+		float setPrice(int thid);
 	};
 
 	struct TradeRecItem
@@ -89,6 +89,11 @@ namespace zc
 	public:
 		ArbiInstrument()
 		{
+			init();
+		};
+
+		void init()
+		{
 			leftTick.LastPrice = -1;
 			leftTick.AskPrice1 = -1;
 			leftTick.BidPrice1 = -1;
@@ -97,7 +102,16 @@ namespace zc
 			rightTick.AskPrice1 = -1;
 			rightTick.BidPrice1 = -1;
 
-		};
+			shortBasisSpread4 = -1; // 左腿挂价，右腿挂价
+			shortBasisSpread3 = -1; // 左腿挂价，右腿对价
+			shortBasisSpread2 = -1; // 左腿对价，右腿挂价
+			shortBasisSpread1 = -1; // 左腿对价，右腿对价
+
+			longBasisSpread1 = -1; // 左腿对价，右腿对价
+			longBasisSpread2 = -1; // 左腿对价，右腿挂价
+			longBasisSpread3 = -1; // 左腿挂价，右腿对价
+			longBasisSpread4 = -1; // 左腿挂价，右腿挂价
+		}
 
 		~ArbiInstrument(){};
 

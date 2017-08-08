@@ -1,22 +1,29 @@
 #include <assert.h>
 #include "SysLog.h"
 #include <string.h>
+#include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <time.h>
+#ifndef WIN32
 #include <pthread.h>
+#else
+#include <Windows.h>
+#endif
+
 #define TCHAR char
 // thread_self()
-using std::fstream;
 using std::cout;
 using std::endl;
 
 const char LogFileLast[] = "logall.txt";
-bool IsDirExist(const TCHAR* DirName);
-bool CreateDir(const TCHAR* DirName);
-unsigned long GetCurrentThreadId();
+//bool IsDirExist(const TCHAR* DirName);
+//bool CreateDir(const TCHAR* DirName);
+void CheckDirExist(const char* DirName);
 
+#ifndef WIN32
+unsigned long GetCurrentThreadId();
 void GetLocalTime(struct timespec& ts)
 {
     // CLOCK_REALTIME:系统实时时间,随系统实时时间改变而改变,即从UTC1970-1-1 0:0:0开始计时,中间时刻如果系统时间被用户该成其他,则对应的时间相应改变
@@ -25,6 +32,7 @@ void GetLocalTime(struct timespec& ts)
     // CLOCK_THREAD_CPUTIME_ID:本线程到当前代码系统CPU花费的时间
     clock_gettime(CLOCK_REALTIME, &ts);
 }
+#endif
 
 SysLog::SysLog()
 {
@@ -33,22 +41,34 @@ SysLog::SysLog()
     UpdateTime(); // 更新当前时间
 }
 
-void SysLog::
-UpdateTime() // 获取最新时间
+void SysLog::UpdateTime() // 获取最新时间
 {
-    GetLocalTime(m_systemtime); // 获取精度到毫秒
-    struct tm* ptm = nullptr;
-    ptm = localtime(&m_systemtime.tv_sec);
-    m_DateNum = (ptm->tm_year+1900)*10000 + (ptm->tm_mon+1)*100 + ptm->tm_mday;
-    m_TimeNum =  ptm->tm_hour*10000 + ptm->tm_min*100 + ptm->tm_sec;
-    m_nanosec = m_systemtime.tv_nsec;
+	struct tm* ptm = nullptr;
+#ifndef WIN32
+	GetLocalTime(m_systemtime); // 获取精度到毫秒
+	ptm = localtime(&m_systemtime.tv_sec);
+	m_nanosec = m_systemtime.tv_nsec;
+#else
+	GetLocalTime(&systm);
+	time(&m_nSeconds);
+	//ptm = localtime(&m_nSeconds);
+	m_tm.tm_year = systm.wYear - 1900;
+	m_tm.tm_mon = systm.wMonth - 1;
+	m_tm.tm_mday = systm.wDay;
+	m_tm.tm_hour = systm.wHour;
+	m_tm.tm_min = systm.wMinute;
+	m_tm.tm_sec = systm.wSecond;
+	//ptm = &m_tm;
+#endif
+	m_DateNum = systm.wYear * 10000 + systm.wMonth * 100 + systm.wDay;
+	m_TimeNum = systm.wHour * 10000 + systm.wMinute * 100 + systm.wSecond;
 }
 
 SysLog::~SysLog(void)
 {
     // 将当日log文件合并为一个txt文件，并关闭文件
-    std::fstream* pof;
-    std::fstream tofile(LogFileLast, std::ios::app);
+	std::fstream* pof;
+	std::fstream tofile(LogFileLast, std::ios::app);
     if (!tofile)
     {
         cout<<LogFileLast<<" not exist!..."<<33578<<endl;
@@ -83,17 +103,14 @@ int SysLog::Log(const char * str, int streamid)
 {
     UpdateTime();
     unsigned long threadid = streamid < 0 ? GetCurrentThreadId() : streamid;
-    char LogFile[64];
-    sprintf(LogFile, "%ld_%d.log", threadid, m_DateNum);
-
+    
     map_it = FilesMap.find(threadid);
     std::fstream* pof = NULL;
     if(map_it == FilesMap.end())
     {
-		if (!IsDirExist(("log")))
-		{
-			CreateDir(("log"));
-		}
+		char LogFile[64];
+		sprintf(LogFile, "%ld_%d.log", m_DateNum, threadid);
+		CheckDirExist("log");
 		std::string LogPath = ("./log/");
 		LogPath.append(LogFile);
         // 新的文件，创建之
@@ -161,7 +178,7 @@ void SysLog::SetEchoToggle(int showid)
     else
     {
         m_bEchoToggle = !m_bEchoToggle;
-        cout<<(m_bEchoToggle? "打开": "关闭")<<"全部Log流的同步cout输出。。。"<<endl;
+        cout<<(m_bEchoToggle?("打开"):("关闭"))<<"全部Log流的同步cout输出......"<<endl;
         m_nShowedId = 0;
     }
 }
@@ -179,23 +196,22 @@ void SysLog::ShowLogStreamIds()
 void SysLog::operator()(const char* str, int streamid)
 {
 	UpdateTime();
-    char LogFile[128];
+    
 	unsigned long threadid = streamid < 0 ? GetCurrentThreadId() : streamid;
-    sprintf(LogFile, "%ld_%d.log", threadid, m_DateNum);
+	
 
     map_it = FilesMap.find(threadid);
     std::fstream* pof = NULL;
     if(map_it == FilesMap.end())
     {
-		if (!IsDirExist(("log")))
-		{
-			CreateDir(("log"));
-		}
+		char LogFile[128];
+		sprintf(LogFile, "%ld_%d.log", m_DateNum, threadid);
+		CheckDirExist("log");
 		std::string LogPath = ("log\\");
 		LogPath.append(LogFile);
         // 新的文件，创建之
 		//cout<<"线程"<<threadid<<"对应的log文件不存在，创建之..."<<endl; // 只是系统中不存在，不代表硬盘上不存在
-		pof = new fstream(LogPath, std::ios::out); // 有则打开，无则新建
+		pof = new std::fstream(LogPath, std::ios::out); // 有则打开，无则新建
 		if (pof->fail())
 		{
 			//cout<<"\nopen log file error!..";
@@ -221,4 +237,43 @@ void SysLog::operator()(const char* str, int streamid)
             cout<<str<<"--"<<m_DateNum<<" "<< (m_TimeNum < 100000 ? "0" : "")<<m_TimeNum<<endl;
         }
     }
+}
+
+std::fstream& SysLog::operator<<(const int threadid)
+{
+	UpdateTime();
+	map_it = FilesMap.find(threadid);
+	std::fstream* pof = NULL;
+	if (map_it == FilesMap.end())
+	{
+		char LogFile[128];
+		sprintf(LogFile, "%ld_%d.log", m_DateNum, threadid);
+		CheckDirExist("log");
+		std::string LogPath = ("log\\");
+		LogPath.append(LogFile);
+		// 新的文件，创建之
+		//cout<<"线程"<<threadid<<"对应的log文件不存在，创建之..."<<endl; // 只是系统中不存在，不代表硬盘上不存在
+		pof = new std::fstream(LogPath, std::ios::out); // 有则打开，无则新建
+		if (pof->fail())
+		{
+			//cout<<"\nopen log file error!..";
+#ifdef WIN32
+			MessageBox(NULL, ("open log file failed!"), ("LogErr"), MB_OK);
+#endif
+			assert(0);
+			return *pof;
+		}
+		FilesMap[threadid] = pof;
+	}
+	else
+	{
+		//找到了文件
+		pof = map_it->second;
+	}
+#ifndef WIN32
+	*pof << "[" << m_DateNum << "-" << std::setw(6)<< m_TimeNum << "." << m_nanosec <<"]-";
+#else
+	*pof << "[" << m_DateNum << "-" << std::setw(6) << m_TimeNum << "." << systm.wMilliseconds << "]-";
+#endif
+	return *pof;
 }

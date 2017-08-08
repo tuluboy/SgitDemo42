@@ -28,7 +28,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -70,7 +70,8 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <TargetName>TaoTaoXia</TargetName>
-    <LibraryPath>D:\work\prj\mysql-5.7\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>D:\work\prj\mysql-5.7\lib;D:\work\prj\boost_1_64_0\stage\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\work\prj\boost_1_64_0;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>$(ProjectName)D</TargetName>
@@ -172,7 +173,9 @@
     <ClCompile Include="GetParam.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mdspi.cpp" />
+    <ClCompile Include="SysLog.cpp" />
     <ClCompile Include="TradeSpi.cpp" />
+    <ClCompile Include="Utils.cpp" />
     <ClCompile Include="zc_util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -190,6 +193,7 @@
     <ClInclude Include="DtTm.h" />
     <ClInclude Include="GetParam.h" />
     <ClInclude Include="MdSpi.h" />
+    <ClInclude Include="SysLog.h" />
     <ClInclude Include="TradeChannel.h" />
     <ClInclude Include="TradeSpi.h" />
     <ClInclude Include="zc_util.h" />

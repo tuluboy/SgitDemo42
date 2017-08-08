@@ -1,45 +1,108 @@
-﻿生成启动时间为 2017/7/6 16:57:06。
+﻿生成启动时间为 2017/8/8 10:18:46。
      1>项目“D:\work\prj\SgitDemo42\SgitDemo42\SgitDemo42.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
-         D:\prog\VS2013\VC\bin\CL.exe /c /I"D:\work\prj\mysql-5.7\include" /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _CRT_SECURE_NO_WARNINGS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Arbitrage.cpp
-         Arbitrage.cpp
-     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(131): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(132): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(134): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(135): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(137): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(138): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(140): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(141): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+         D:\prog\VS2013\VC\bin\CL.exe /c /I"D:\work\prj\mysql-5.7\include" /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _CRT_SECURE_NO_WARNINGS /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ArbOrdItem.cpp Arbitrage.cpp Mdspi.cpp SysLog.cpp TradeSpi.cpp dbman.cpp main.cpp
+         main.cpp
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(145): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(146): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(148): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(149): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(151): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(152): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(154): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(155): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
      1>d:\work\prj\sgitdemo42\sgitdemo42\arborditem.h(8): warning C4099: “zc::ArbOrdItem”: 类型名称以前使用“struct”现在使用的是“class”
                  d:\work\prj\sgitdemo42\sgitdemo42\common.h(27) : 参见“zc::ArbOrdItem”的声明
-     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(456): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(460): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(471): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(475): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1130): warning C4244: “return”: 从“double”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1183): warning C4244: “return”: 从“double”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1200): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1203): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-     1>d:\work\prj\sgitdemo42\sgitdemo42\dbman.h(27): warning C4244: “=”: 从“my_ulonglong”转换到“int”，可能丢失数据
-                 d:\work\prj\sgitdemo42\sgitdemo42\dbman.h(21): 编译类 模板 成员函数“void dbQuery<zc::ParamRowItem4DbQry>::doParse(void)”时
-                 d:\work\prj\sgitdemo42\sgitdemo42\dbman.h(47): 参见对正在编译的函数 模板 实例化“void dbQuery<zc::ParamRowItem4DbQry>::doParse(void)”的引用
-                 d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1194): 参见对正在编译的类 模板 实例化“dbQuery<zc::ParamRowItem4DbQry>”的引用
-     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(463): warning C4715: “zc::Arbitrage::getLeftPrice”: 不是所有的控件路径都返回值
+     1>d:\work\prj\sgitdemo42\sgitdemo42\syslog.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+     1>d:\work\prj\sgitdemo42\sgitdemo42\main.cpp(32): warning C4244: “参数”: 从“float”转换到“DWORD”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\main.cpp(159): warning C4172: 返回局部变量或临时变量的地址
+     1>d:\work\prj\sgitdemo42\sgitdemo42\main.cpp(583): warning C4101: “cdime”: 未引用的局部变量
+         dbman.cpp
+     1>d:\work\prj\sgitdemo42\sgitdemo42\syslog.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+         TradeSpi.cpp
+     1>d:\work\prj\sgitdemo42\sgitdemo42\syslog.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(145): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(146): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(148): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(149): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(151): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(152): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(154): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(155): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+         SysLog.cpp
+     1>d:\work\prj\sgitdemo42\sgitdemo42\syslog.cpp : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+     1>d:\work\prj\sgitdemo42\sgitdemo42\syslog.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+     1>d:\work\prj\sgitdemo42\sgitdemo42\syslog.cpp(84): warning C4244: “=”: 从“std::streamoff”转换到“int”，可能丢失数据
+         Mdspi.cpp
+     1>d:\work\prj\sgitdemo42\sgitdemo42\syslog.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(145): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(146): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(148): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(149): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(151): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(152): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(154): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(155): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+         Arbitrage.cpp
+     1>d:\work\prj\sgitdemo42\sgitdemo42\syslog.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(145): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(146): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(148): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(149): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(151): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(152): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(154): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(155): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arborditem.h(8): warning C4099: “zc::ArbOrdItem”: 类型名称以前使用“struct”现在使用的是“class”
+                 d:\work\prj\sgitdemo42\sgitdemo42\common.h(27) : 参见“zc::ArbOrdItem”的声明
+     1>d:\work\prj\sgitdemo42\sgitdemo42\dttm.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(186): warning C4018: “<”: 有符号/无符号不匹配
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(313): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(486): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(607): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(611): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(622): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(626): warning C4244: “return”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1378): warning C4244: “return”: 从“double”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1432): warning C4244: “return”: 从“double”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1449): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1452): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\dbman.h(34): warning C4244: “=”: 从“my_ulonglong”转换到“int”，可能丢失数据
+                 d:\work\prj\sgitdemo42\sgitdemo42\dbman.h(23): 编译类 模板 成员函数“void dbQuery<zc::ParamRowItem4DbQry>::doParse(int)”时
+                 d:\work\prj\sgitdemo42\sgitdemo42\dbman.h(54): 参见对正在编译的函数 模板 实例化“void dbQuery<zc::ParamRowItem4DbQry>::doParse(int)”的引用
+                 d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(1443): 参见对正在编译的类 模板 实例化“dbQuery<zc::ParamRowItem4DbQry>”的引用
+         ArbOrdItem.cpp
+     1>d:\work\prj\sgitdemo42\sgitdemo42\syslog.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(145): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(146): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(148): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(149): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(151): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(152): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(154): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\common.h(155): warning C4244: “=”: 从“fstech::TThostFtdcPriceType”转换到“float”，可能丢失数据
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arborditem.h(8): warning C4099: “zc::ArbOrdItem”: 类型名称以前使用“struct”现在使用的是“class”
+                 d:\work\prj\sgitdemo42\sgitdemo42\common.h(27) : 参见“zc::ArbOrdItem”的声明
+         正在生成代码...
+     1>d:\work\prj\sgitdemo42\sgitdemo42\arbitrage.cpp(614): warning C4715: “zc::Arbitrage::getLeftPrice”: 不是所有的控件路径都返回值
+     1>d:\work\prj\sgitdemo42\sgitdemo42\cirque.h(109): warning C4715: “zc::cirque<int>::GetSize”: 不是所有的控件路径都返回值
        Link:
          D:\prog\VS2013\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\work\prj\SgitDemo42\bin\TaoTaoXia.exe" /INCREMENTAL /NOLOGO libmysql32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\work\prj\SgitDemo42\bin\TaoTaoXia.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\work\prj\SgitDemo42\bin\TaoTaoXia.lib" /MACHINE:X86 Debug\log.obj
          Debug\tinyxml2.obj
          Debug\Arbitrage.obj
          Debug\ArbOrdItem.obj
          Debug\dbman.obj
+         Debug\DtTm.obj
          Debug\GetParam.obj
          Debug\main.obj
          Debug\Mdspi.obj
+         Debug\SysLog.obj
          Debug\TradeSpi.obj
+         Debug\Utils.obj
          Debug\zc_util.obj
          SgitDemo42.vcxproj -> D:\work\prj\SgitDemo42\bin\TaoTaoXia.exe
      1>已完成生成项目“D:\work\prj\SgitDemo42\SgitDemo42\SgitDemo42.vcxproj”(Build 个目标)的操作。
 
 生成成功。
 
-已用时间 00:00:00.91
+已用时间 00:00:05.01

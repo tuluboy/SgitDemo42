@@ -26,9 +26,9 @@ namespace zc
 		float entryCommission; // 入场时交易成本
 		float exitCommission; // 出厂时交易成本
 		Arbitrage* arbit; // 来自哪个套利合约
-		void setLeftFirst();
-		void setRightFirst();
-		void setBothFirst();
+		void setLeftFirst(int thid);
+		void setRightFirst(int thid);
+		void setBothFirst(int thid);
 	//private:
 		PlannedOrderItem* left;
 		PlannedOrderItem* right;
